@@ -35,11 +35,11 @@ export default function ExtensionRequestDialog({ open, onOpenChange, employee, r
       <DialogContent>
         <DialogHeader><DialogTitle>Extender jornada 30 min</DialogTitle></DialogHeader>
         {sent ? (
-          <p className="text-green-600 font-medium py-6 text-center">Solicitud enviada a tu manager.</p>
+          <p className="text-success font-medium py-6 text-center">Solicitud enviada a tu manager.</p>
         ) : (
           <div className="space-y-4">
             <Textarea placeholder="Motivo de la extensión" value={reason} onChange={(e) => setReason(e.target.value)} />
-            <Button className="w-full bg-green-600 hover:bg-green-700" disabled={saving || !reason} onClick={submit}>
+            <Button className="w-full bg-primary hover:bg-primary/90" disabled={saving || !reason} onClick={submit}>
               {saving ? "Enviando..." : "Enviar solicitud"}
             </Button>
           </div>

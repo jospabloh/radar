@@ -29,18 +29,18 @@ export default function Employees() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Empleados</h1>
-        <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowCreate(true)}>
+        <h1 className="text-2xl font-semibold text-foreground">Empleados</h1>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-2" />Nuevo empleado
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+      <div className="bg-card rounded-2xl border border-border divide-y divide-border">
         {employees.map((emp) => (
           <div key={emp.id} className="flex items-center justify-between px-5 py-4">
             <div>
-              <p className="font-medium text-slate-900">{emp.full_name}</p>
-              <p className="text-sm text-slate-500">{emp.email}</p>
+              <p className="font-medium text-foreground">{emp.full_name}</p>
+              <p className="text-sm text-muted-foreground">{emp.email}</p>
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="secondary">{ROLE_LABEL[emp.role]}</Badge>
@@ -50,7 +50,7 @@ export default function Employees() {
             </div>
           </div>
         ))}
-        {employees.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">Aún no hay empleados</p>}
+        {employees.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">Aún no hay empleados</p>}
       </div>
 
       {user && (

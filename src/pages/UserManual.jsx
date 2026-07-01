@@ -22,21 +22,21 @@ export default function UserManual() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Manual de Usuario" subtitle="Encuentra respuestas rápidas sobre el uso de RADAR" />
       <div className="max-w-2xl mx-auto px-6">
         <div className="relative mb-6">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input className="pl-9" placeholder="Buscar en el manual..." value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div className="space-y-3">
           {filtered.map((a) => (
-            <div key={a.title} className="bg-white rounded-2xl border border-slate-100 p-5">
-              <p className="font-medium text-slate-900 mb-1">{a.title}</p>
-              <p className="text-sm text-slate-500">{a.content}</p>
+            <div key={a.title} className="bg-card rounded-2xl border border-border p-5">
+              <p className="font-medium text-foreground mb-1">{a.title}</p>
+              <p className="text-sm text-muted-foreground">{a.content}</p>
             </div>
           ))}
-          {filtered.length === 0 && <p className="text-center text-slate-400 text-sm py-8">No se encontraron resultados</p>}
+          {filtered.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">No se encontraron resultados</p>}
         </div>
       </div>
     </div>

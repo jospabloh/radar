@@ -31,11 +31,11 @@ export default function ProductivityAnalytics() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Analítica de Productividad" subtitle="Puntualidad, horas extra y ausentismo del equipo" />
       <div className="max-w-4xl mx-auto px-6 space-y-8">
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
-          <p className="font-semibold text-slate-900 mb-4">Tardanzas y ausencias por empleado</p>
+        <div className="bg-card rounded-2xl border border-border p-6">
+          <p className="font-semibold text-foreground mb-4">Tardanzas y ausencias por empleado</p>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={punctualityData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -48,8 +48,8 @@ export default function ProductivityAnalytics() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
-          <p className="font-semibold text-slate-900 mb-4">Minutos de extensión acumulados</p>
+        <div className="bg-card rounded-2xl border border-border p-6">
+          <p className="font-semibold text-foreground mb-4">Minutos de extensión acumulados</p>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={overtimeData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -61,7 +61,7 @@ export default function ProductivityAnalytics() {
           </ResponsiveContainer>
         </div>
 
-        {punctualityData.length === 0 && <p className="text-center text-slate-400 text-sm py-8">Sin datos suficientes aún</p>}
+        {punctualityData.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Sin datos suficientes aún</p>}
       </div>
     </div>
   );
