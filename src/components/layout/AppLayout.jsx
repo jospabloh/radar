@@ -19,10 +19,19 @@ const NAV_BY_ROLE = {
 
 export default function AppLayout() {
   const [user, setUser] = useState(null);
+  const [companyName, setCompanyName] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
-    base44.auth.me().then(setUser);
+    base44.auth.me().then(async (u) => {
+      setUser(u);
+      const employees = await base44.entities.Employee.filter({ user_id: u.id });
+      const employee = employees[0];
+      if (employee?.company_id) {
+        const company = await base44.entities.Company.get(employee.company_id);
+        setCompanyName(company?.name || null);
+      }
+    });
   }, []);
 
   const items = user ? NAV_BY_ROLE[user.app_role] || [] : [];
@@ -32,8 +41,11 @@ export default function AppLayout() {
       <aside className="w-64 bg-white border-r border-slate-100 flex flex-col">
         <div className="p-6">
           <h1 className="text-xl font-bold text-slate-900">
-            Asist<span className="text-green-600">App</span>
+            RADAR<span className="text-green-600">.</span>
           </h1>
+          <p className="text-xs text-slate-400 mt-1 truncate">
+            {companyName || "Panel general"}
+          </p>
         </div>
         <nav className="flex-1 px-3 space-y-1">
           {items.map((item) => {
