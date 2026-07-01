@@ -7,35 +7,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { LifeBuoy, Search, Send, Loader2, Inbox } from "lucide-react";
 
-const STATUS = {
-  abierto: { label: "Abierto", className: "bg-warning/10 text-warning border border-warning/20" },
-  en_proceso: { label: "En proceso", className: "bg-primary/10 text-primary border border-primary/20" },
-  resuelto: { label: "Resuelto", className: "bg-success/10 text-success border border-success/20" },
+const STATUS_STYLE = {
+  open: "bg-yellow-100 text-yellow-700",
+  in_progress: "bg-blue-100 text-blue-700",
+  waiting_customer: "bg-orange-100 text-orange-700",
+  resolved: "bg-green-100 text-green-700",
+  closed: "bg-slate-100 text-slate-600",
 };
-
-const FILTERS = [
-  { value: "todos", label: "Todos" },
-  { value: "abierto", label: "Abiertos" },
-  { value: "en_proceso", label: "En proceso" },
-  { value: "resuelto", label: "Resueltos" },
-];
-
-function fmtDate(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? ""
-    : d.toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-}
-
-function StatusBadge({ status }) {
-  const s = STATUS[status] || STATUS.abierto;
-  return (
-    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${s.className}`}>
-      {s.label}
-    </span>
-  );
-}
+const STATUS_LABEL = {
+  open: "Abierto",
+  in_progress: "En proceso",
+  waiting_customer: "Esperando cliente",
+  resolved: "Resuelto",
+  closed: "Cerrado",
+};
 
 export default function SupportCenter() {
   const [user, setUser] = useState(null);
@@ -71,12 +56,17 @@ export default function SupportCenter() {
   const handleSubmit = async () => {
     if (!subject.trim() || !description.trim()) return;
     setSaving(true);
-    await base44.entities.SupportTicket.create({
+    const ticket = await base44.entities.SupportTicket.create({
       company_id: companyId,
       employee_name: user.full_name,
-      subject: subject.trim(),
-      description: description.trim(),
+      created_by_id: user.id,
+      created_by_email: user.email,
+      priority: "normal",
+      subject,
+      description,
     });
+    // Fire-and-forget: push the new ticket to ACACIA Mission Control in real time.
+    base44.functions.invoke("notifyTicketCreated", { ticketId: ticket.id }).catch(() => {});
     setSubject("");
     setDescription("");
     setSaving(false);
@@ -136,22 +126,30 @@ export default function SupportCenter() {
           </div>
         </div>
 
-        {/* Filters + search */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            {FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  filter === f.value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {f.label}
-                {f.value !== "todos" && counts[f.value] > 0 && (
-                  <span className="ml-1.5 opacity-70">{counts[f.value]}</span>
+        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+          {tickets.map((t) => (
+            <div key={t.id} className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium text-slate-900">{t.subject}</p>
+                  <p className="text-sm text-slate-500 mt-1">{t.description}</p>
+                  {isAdmin && <p className="text-xs text-slate-400 mt-1">{t.employee_name}</p>}
+                </div>
+                {isAdmin ? (
+                  <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
+                    <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Abierto</SelectItem>
+                      <SelectItem value="in_progress">En proceso</SelectItem>
+                      <SelectItem value="waiting_customer">Esperando cliente</SelectItem>
+                      <SelectItem value="resolved">Resuelto</SelectItem>
+                      <SelectItem value="closed">Cerrado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_STYLE[t.status]}`}>
+                    {STATUS_LABEL[t.status]}
+                  </span>
                 )}
               </button>
             ))}

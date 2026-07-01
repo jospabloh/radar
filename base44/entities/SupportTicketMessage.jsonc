@@ -1,0 +1,37 @@
+{
+  "name": "SupportTicketMessage",
+  "type": "object",
+  "description": "Un mensaje dentro del hilo de un SupportTicket. Las notas internas (is_internal_note=true) solo las ve el soporte (owner) — vía RLS y UI.",
+  "properties": {
+    "ticket_id": { "type": "string", "description": "ID del ticket al que pertenece" },
+    "company_id": { "type": "string", "description": "ID de la empresa (denormalizado para RLS)" },
+    "author_id": { "type": "string", "description": "ID del autor del mensaje" },
+    "author_email": { "type": "string", "description": "Email del autor" },
+    "author_name": { "type": "string", "description": "Nombre del autor" },
+    "author_role": { "type": "string", "enum": ["owner", "tenant"], "description": "Rol del autor en el contexto del ticket" },
+    "body": { "type": "string", "description": "Contenido del mensaje" },
+    "is_internal_note": { "type": "boolean", "default": false, "description": "Nota interna visible solo para el soporte (owner)" },
+    "attachments": { "type": "array", "items": { "type": "string" }, "description": "URLs de archivos adjuntos" }
+  },
+  "required": ["ticket_id", "company_id", "body"],
+  "rls": {
+    "create": {
+      "$or": [
+        { "$and": [ { "data.company_id": "{{user.data.company_id}}" }, { "data.is_internal_note": false } ] },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "$and": [ { "data.company_id": "{{user.data.company_id}}" }, { "data.is_internal_note": false } ] },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": {
+      "user_condition": { "role": "admin" }
+    },
+    "delete": {
+      "user_condition": { "role": "admin" }
+    }
+  }
+}
