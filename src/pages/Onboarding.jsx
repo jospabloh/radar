@@ -36,18 +36,18 @@ export default function Onboarding() {
 
   if (status === "not_found") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-        <div className="max-w-md text-center bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-          <h1 className="text-xl font-semibold text-slate-900 mb-2">No encontramos tu cuenta</h1>
-          <p className="text-slate-500">Contacta a tu administrador para que te dé acceso a AsistApp.</p>
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="max-w-md text-center bg-card rounded-2xl shadow-sm border border-border p-8">
+          <h1 className="text-xl font-semibold text-foreground mb-2">No encontramos tu cuenta</h1>
+          <p className="text-muted-foreground">Contacta a tu administrador para que te dé acceso a AsistApp.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
 }

@@ -40,29 +40,29 @@ export default function EmployeeProfile() {
   };
 
   if (!employee) {
-    return <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-400">Cargando...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Cargando...</div>;
   }
 
   const ROLE_LABEL = { company_admin: "Administrador", store_manager: "Gerente de tienda", employee: "Empleado" };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Perfil de Empleado" subtitle="Tus datos personales y expediente laboral" backTo="/portal" />
       <div className="max-w-2xl mx-auto px-6 space-y-6">
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
-          <p className="font-semibold text-slate-900 mb-4">Datos personales</p>
+        <div className="bg-card rounded-2xl border border-border p-6">
+          <p className="font-semibold text-foreground mb-4">Datos personales</p>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><p className="text-slate-400">Nombre</p><p className="text-slate-900">{employee.full_name}</p></div>
-            <div><p className="text-slate-400">Correo</p><p className="text-slate-900">{employee.email}</p></div>
-            <div><p className="text-slate-400">Puesto</p><p className="text-slate-900">{ROLE_LABEL[employee.role]}</p></div>
-            <div><p className="text-slate-400">Estatus</p><p className="text-slate-900 capitalize">{employee.status}</p></div>
-            <div><p className="text-slate-400">Fecha de contratación</p><p className="text-slate-900">{employee.hire_date || "—"}</p></div>
+            <div><p className="text-muted-foreground">Nombre</p><p className="text-foreground">{employee.full_name}</p></div>
+            <div><p className="text-muted-foreground">Correo</p><p className="text-foreground">{employee.email}</p></div>
+            <div><p className="text-muted-foreground">Puesto</p><p className="text-foreground">{ROLE_LABEL[employee.role]}</p></div>
+            <div><p className="text-muted-foreground">Estatus</p><p className="text-foreground capitalize">{employee.status}</p></div>
+            <div><p className="text-muted-foreground">Fecha de contratación</p><p className="text-foreground">{employee.hire_date || "—"}</p></div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
+        <div className="bg-card rounded-2xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <p className="font-semibold text-slate-900">Documentos</p>
+            <p className="font-semibold text-foreground">Documentos</p>
             <label>
               <Button variant="outline" size="sm" asChild>
                 <span className="cursor-pointer"><Upload className="w-4 h-4 mr-2" />{uploading ? "Subiendo..." : "Subir documento"}</span>
@@ -72,11 +72,11 @@ export default function EmployeeProfile() {
           </div>
           <div className="space-y-2">
             {docs.map((d) => (
-              <a key={d.id} href={d.file_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 hover:text-green-700">
+              <a key={d.id} href={d.file_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
                 <FileText className="w-4 h-4" /> {d.name}
               </a>
             ))}
-            {docs.length === 0 && <p className="text-sm text-slate-400">Sin documentos cargados</p>}
+            {docs.length === 0 && <p className="text-sm text-muted-foreground">Sin documentos cargados</p>}
           </div>
         </div>
       </div>

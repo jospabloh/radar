@@ -56,7 +56,7 @@ export default function EmployeeFormDialog({ open, onOpenChange, companyId, onCr
             <Label className="mb-2 block">Horario</Label>
             <ScheduleEditor schedule={schedule} onChange={setSchedule} />
           </div>
-          <Button className="w-full bg-green-600 hover:bg-green-700" disabled={saving || !email || !fullName} onClick={handleSubmit}>
+          <Button className="w-full bg-primary hover:bg-primary/90" disabled={saving || !email || !fullName} onClick={handleSubmit}>
             {saving ? "Guardando..." : "Crear empleado"}
           </Button>
         </div>

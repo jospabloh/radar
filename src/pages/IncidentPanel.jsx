@@ -4,7 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
-const STATUS_STYLE = { absent: "bg-red-100 text-red-700", late: "bg-yellow-100 text-yellow-700" };
+const STATUS_STYLE = { absent: "bg-destructive/10 text-destructive", late: "bg-warning/10 text-warning" };
 const STATUS_LABEL = { absent: "Ausente", late: "Tarde" };
 
 export default function IncidentPanel() {
@@ -33,15 +33,15 @@ export default function IncidentPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Panel de Incidencias" subtitle="Ausencias y llegadas tarde agrupadas para revisión" />
       <div className="max-w-3xl mx-auto px-6 space-y-3">
         {incidents.map((r) => (
-          <div key={r.id} className="bg-white rounded-2xl border border-slate-100 p-5">
+          <div key={r.id} className="bg-card rounded-2xl border border-border p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="font-medium text-slate-900">{r.employee_name}</p>
-                <p className="text-sm text-slate-500">{r.date}</p>
+                <p className="font-medium text-foreground">{r.employee_name}</p>
+                <p className="text-sm text-muted-foreground">{r.date}</p>
               </div>
               <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
             </div>
@@ -55,7 +55,7 @@ export default function IncidentPanel() {
             <Button size="sm" variant="outline" onClick={() => handleSaveNote(r.id)}>Guardar nota</Button>
           </div>
         ))}
-        {incidents.length === 0 && <p className="text-center text-slate-400 text-sm py-8">Sin incidencias registradas</p>}
+        {incidents.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Sin incidencias registradas</p>}
       </div>
     </div>
   );

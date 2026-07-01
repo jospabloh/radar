@@ -44,24 +44,24 @@ export default function ShiftSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Configuración de Horarios" subtitle="Define los turnos predeterminados de tu empresa" />
       <div className="max-w-2xl mx-auto px-6 space-y-6">
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
+        <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
           <Input placeholder="Nombre del turno (ej. Matutino)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <div className="flex gap-4">
             <div className="flex-1">
-              <label className="text-xs text-slate-500">Entrada</label>
+              <label className="text-xs text-muted-foreground">Entrada</label>
               <Input type="time" value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} />
             </div>
             <div className="flex-1">
-              <label className="text-xs text-slate-500">Salida</label>
+              <label className="text-xs text-muted-foreground">Salida</label>
               <Input type="time" value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} />
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
             {WEEKDAYS.map((d) => (
-              <label key={d.key} className="flex items-center gap-2 text-sm text-slate-600">
+              <label key={d.key} className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Checkbox checked={form.days_of_week.includes(d.key)} onCheckedChange={() => toggleDay(d.key)} />
                 {d.label}
               </label>
@@ -70,21 +70,21 @@ export default function ShiftSettings() {
           <Button onClick={handleCreate}>Crear turno</Button>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+        <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {templates.map((t) => (
             <div key={t.id} className="flex items-center justify-between p-5">
               <div>
-                <p className="font-medium text-slate-900">{t.name}</p>
-                <p className="text-sm text-slate-500">
+                <p className="font-medium text-foreground">{t.name}</p>
+                <p className="text-sm text-muted-foreground">
                   {t.start} - {t.end} · {(t.days_of_week || []).map((d) => WEEKDAYS.find((w) => w.key === d)?.label).join(", ")}
                 </p>
               </div>
-              <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-600">
+              <button onClick={() => handleDelete(t.id)} className="text-muted-foreground hover:text-destructive">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
           ))}
-          {templates.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">No hay turnos configurados</p>}
+          {templates.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No hay turnos configurados</p>}
         </div>
       </div>
     </div>

@@ -40,7 +40,7 @@ export default function ScheduleChangeDialog({ open, onOpenChange, employee, onC
         <div className="space-y-4">
           <ScheduleEditor schedule={schedule} onChange={setSchedule} />
           <Textarea placeholder="Motivo del cambio" value={reason} onChange={(e) => setReason(e.target.value)} />
-          <Button className="w-full bg-green-600 hover:bg-green-700" disabled={saving} onClick={handleSubmit}>
+          <Button className="w-full bg-primary hover:bg-primary/90" disabled={saving} onClick={handleSubmit}>
             {saving ? "Enviando..." : "Enviar solicitud de aprobación"}
           </Button>
         </div>

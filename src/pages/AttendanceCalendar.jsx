@@ -58,16 +58,16 @@ export default function AttendanceCalendar() {
   const dayInfo = (date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const holiday = holidays.find((h) => h.date === dateStr);
-    if (holiday) return { label: holiday.name, color: "bg-blue-100 text-blue-700" };
+    if (holiday) return { label: holiday.name, color: "bg-primary/10 text-primary" };
     const pto = ptos.find((p) => p.start_date <= dateStr && p.end_date >= dateStr);
     if (pto) return { label: "Vacaciones/Permiso", color: "bg-purple-100 text-purple-700" };
     const weekday = WEEKDAY_KEYS[getDay(date)];
     const works = employee?.schedule?.[weekday]?.works;
-    return works ? { label: employee.schedule[weekday].start, color: "bg-green-50 text-green-700" } : { label: "Descanso", color: "bg-slate-100 text-slate-400" };
+    return works ? { label: employee.schedule[weekday].start, color: "bg-success/10 text-success" } : { label: "Descanso", color: "bg-muted text-muted-foreground" };
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Calendario de Asistencias" subtitle="Turnos, días festivos y vacaciones del mes" backTo={isAdmin ? "/dashboard" : "/portal"} />
       <div className="max-w-3xl mx-auto px-6">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
@@ -81,16 +81,16 @@ export default function AttendanceCalendar() {
           )}
           <div className="flex items-center gap-2 ml-auto">
             <Button variant="outline" size="icon" onClick={() => setMonth(subMonths(month, 1))}><ChevronLeft className="w-4 h-4" /></Button>
-            <p className="font-medium text-slate-900 w-36 text-center capitalize">{format(month, "MMMM yyyy", { locale: es })}</p>
+            <p className="font-medium text-foreground w-36 text-center capitalize">{format(month, "MMMM yyyy", { locale: es })}</p>
             <Button variant="outline" size="icon" onClick={() => setMonth(addMonths(month, 1))}><ChevronRight className="w-4 h-4" /></Button>
           </div>
         </div>
 
         {employee && (
-          <div className="bg-white rounded-2xl border border-slate-100 p-4">
+          <div className="bg-card rounded-2xl border border-border p-4">
             <div className="grid grid-cols-7 gap-2 mb-2">
               {["D", "L", "M", "M", "J", "V", "S"].map((d, i) => (
-                <p key={i} className="text-center text-xs font-medium text-slate-400">{d}</p>
+                <p key={i} className="text-center text-xs font-medium text-muted-foreground">{d}</p>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-2">

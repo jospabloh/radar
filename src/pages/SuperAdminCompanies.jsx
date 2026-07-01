@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Building2 } from "lucide-react";
 
-const TIER_COLOR = { starter: "bg-slate-100 text-slate-600", pro: "bg-green-100 text-green-700", enterprise: "bg-purple-100 text-purple-700" };
+const TIER_COLOR = { starter: "bg-muted text-muted-foreground", pro: "bg-success/10 text-success", enterprise: "bg-purple-100 text-purple-700" };
 
 export default function SuperAdminCompanies() {
   const [companies, setCompanies] = useState([]);
@@ -49,20 +49,20 @@ export default function SuperAdminCompanies() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Empresas</h1>
-        <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowCreate(true)}>
+        <h1 className="text-2xl font-semibold text-foreground">Empresas</h1>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-2" />Nueva empresa
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+      <div className="bg-card rounded-2xl border border-border divide-y divide-border">
         {companies.map((c) => (
           <div key={c.id} className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-3">
-              <Building2 className="w-5 h-5 text-slate-400" />
+              <Building2 className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="font-medium text-slate-900">{c.name}</p>
-                <p className="text-xs text-slate-500">{c.is_mexican ? "México (LFT)" : "Internacional"}</p>
+                <p className="font-medium text-foreground">{c.name}</p>
+                <p className="text-xs text-muted-foreground">{c.is_mexican ? "México (LFT)" : "Internacional"}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -71,7 +71,7 @@ export default function SuperAdminCompanies() {
             </div>
           </div>
         ))}
-        {companies.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">Aún no hay empresas</p>}
+        {companies.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">Aún no hay empresas</p>}
       </div>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
@@ -94,7 +94,7 @@ export default function SuperAdminCompanies() {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="w-full bg-green-600 hover:bg-green-700" disabled={saving || !form.name} onClick={createCompany}>
+            <Button className="w-full bg-primary hover:bg-primary/90" disabled={saving || !form.name} onClick={createCompany}>
               {saving ? "Creando..." : "Crear empresa"}
             </Button>
           </div>
@@ -107,7 +107,7 @@ export default function SuperAdminCompanies() {
           <div className="space-y-4">
             <div><Label>Nombre completo</Label><Input value={inviteForm.full_name} onChange={(e) => setInviteForm({ ...inviteForm, full_name: e.target.value })} /></div>
             <div><Label>Email</Label><Input type="email" value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} /></div>
-            <Button className="w-full bg-green-600 hover:bg-green-700" disabled={saving || !inviteForm.email} onClick={inviteAdmin}>
+            <Button className="w-full bg-primary hover:bg-primary/90" disabled={saving || !inviteForm.email} onClick={inviteAdmin}>
               {saving ? "Enviando..." : "Enviar invitación"}
             </Button>
           </div>
