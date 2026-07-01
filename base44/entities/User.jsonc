@@ -1,0 +1,26 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user"
+    },
+    "app_role": {
+      "type": "string",
+      "enum": [
+        "super_admin",
+        "company_admin",
+        "store_manager",
+        "employee"
+      ]
+    },
+    "company_id": {
+      "type": "string"
+    }
+  }
+}

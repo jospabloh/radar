@@ -1,0 +1,55 @@
+{
+  "name": "PTORequest",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "employee_name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "vacaciones",
+        "permiso_personal",
+        "incapacidad",
+        "dia_festivo",
+        "otro"
+      ],
+      "default": "vacaciones"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "manager_comment": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "employee_id",
+    "company_id",
+    "start_date",
+    "end_date"
+  ]
+}

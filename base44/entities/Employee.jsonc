@@ -1,0 +1,147 @@
+{
+  "name": "Employee",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "company_admin",
+        "store_manager",
+        "employee"
+      ],
+      "default": "employee"
+    },
+    "schedule": {
+      "type": "object",
+      "properties": {
+        "monday": {
+          "type": "object",
+          "properties": {
+            "works": {
+              "type": "boolean"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            }
+          }
+        },
+        "tuesday": {
+          "type": "object",
+          "properties": {
+            "works": {
+              "type": "boolean"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            }
+          }
+        },
+        "wednesday": {
+          "type": "object",
+          "properties": {
+            "works": {
+              "type": "boolean"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            }
+          }
+        },
+        "thursday": {
+          "type": "object",
+          "properties": {
+            "works": {
+              "type": "boolean"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            }
+          }
+        },
+        "friday": {
+          "type": "object",
+          "properties": {
+            "works": {
+              "type": "boolean"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            }
+          }
+        },
+        "saturday": {
+          "type": "object",
+          "properties": {
+            "works": {
+              "type": "boolean"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            }
+          }
+        },
+        "sunday": {
+          "type": "object",
+          "properties": {
+            "works": {
+              "type": "boolean"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "hire_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "email",
+    "full_name",
+    "company_id"
+  ]
+}

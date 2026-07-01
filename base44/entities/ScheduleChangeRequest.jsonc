@@ -1,0 +1,35 @@
+{
+  "name": "ScheduleChangeRequest",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "employee_name": {
+      "type": "string"
+    },
+    "proposed_schedule": {
+      "type": "object"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "employee_id",
+    "company_id",
+    "proposed_schedule"
+  ]
+}

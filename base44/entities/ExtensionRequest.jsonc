@@ -1,0 +1,43 @@
+{
+  "name": "ExtensionRequest",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "employee_name": {
+      "type": "string"
+    },
+    "attendance_record_id": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "requested_minutes": {
+      "type": "number",
+      "default": 30
+    },
+    "reason": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "employee_id",
+    "company_id",
+    "attendance_record_id"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "is_mexican": {
+      "type": "boolean",
+      "default": true
+    },
+    "timezone": {
+      "type": "string",
+      "default": "America/Mexico_City"
+    },
+    "whatsapp_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro",
+        "enterprise"
+      ],
+      "default": "starter"
+    },
+    "max_employees": {
+      "type": "number",
+      "default": 15
+    },
+    "license_expiry": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "suspended"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
