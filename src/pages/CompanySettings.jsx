@@ -39,13 +39,13 @@ export default function CompanySettings() {
   };
 
   if (!company) {
-    return <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-400">Cargando...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Cargando...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Configuración de Empresa" subtitle="Actualiza los datos generales de tu organización" />
-      <div className="max-w-md mx-auto px-6 bg-white rounded-2xl border border-slate-100 p-6 space-y-5">
+      <div className="max-w-md mx-auto px-6 bg-card rounded-2xl border border-border p-6 space-y-5">
         <div>
           <Label>Nombre de la empresa</Label>
           <Input
@@ -66,7 +66,7 @@ export default function CompanySettings() {
         <div className="flex items-center justify-between py-2">
           <div>
             <Label>Notificaciones por WhatsApp</Label>
-            <p className="text-xs text-slate-500">Integra tu cuenta para recibir avisos</p>
+            <p className="text-xs text-muted-foreground">Integra tu cuenta para recibir avisos</p>
           </div>
           <Switch
             checked={!!company.whatsapp_enabled}
@@ -76,7 +76,7 @@ export default function CompanySettings() {
         <Button className="w-full" onClick={handleSave} disabled={saving}>
           {saving ? "Guardando..." : "Guardar cambios"}
         </Button>
-        {saved && <p className="text-sm text-green-600 text-center">Cambios guardados</p>}
+        {saved && <p className="text-sm text-success text-center">Cambios guardados</p>}
       </div>
     </div>
   );

@@ -43,7 +43,7 @@ export default function PTORequestDialog({ open, onOpenChange, employee }) {
       <DialogContent>
         <DialogHeader><DialogTitle>Solicitar PTO / Ausencia</DialogTitle></DialogHeader>
         {sent ? (
-          <p className="text-green-600 font-medium py-6 text-center">Solicitud enviada a tu manager.</p>
+          <p className="text-success font-medium py-6 text-center">Solicitud enviada a tu manager.</p>
         ) : (
           <div className="space-y-4">
             <div>
@@ -64,7 +64,7 @@ export default function PTORequestDialog({ open, onOpenChange, employee }) {
               <div className="flex-1"><Label>Hasta</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
             </div>
             <div><Label>Motivo</Label><Textarea value={reason} onChange={(e) => setReason(e.target.value)} /></div>
-            <Button className="w-full bg-green-600 hover:bg-green-700" disabled={saving || !startDate || !endDate} onClick={submit}>
+            <Button className="w-full bg-primary hover:bg-primary/90" disabled={saving || !startDate || !endDate} onClick={submit}>
               {saving ? "Enviando..." : "Enviar solicitud"}
             </Button>
           </div>

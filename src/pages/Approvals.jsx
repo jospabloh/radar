@@ -8,11 +8,11 @@ function Row({ title, subtitle, onApprove, onReject }) {
   return (
     <div className="flex items-center justify-between px-5 py-4">
       <div>
-        <p className="font-medium text-slate-900">{title}</p>
-        <p className="text-sm text-slate-500">{subtitle}</p>
+        <p className="font-medium text-foreground">{title}</p>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
       <div className="flex gap-2">
-        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={onApprove}><Check className="w-4 h-4" /></Button>
+        <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={onApprove}><Check className="w-4 h-4" /></Button>
         <Button size="sm" variant="outline" onClick={onReject}><X className="w-4 h-4" /></Button>
       </div>
     </div>
@@ -59,7 +59,7 @@ export default function Approvals() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-6">Aprobaciones</h1>
+      <h1 className="text-2xl font-semibold text-foreground mb-6">Aprobaciones</h1>
       <Tabs defaultValue="pto">
         <TabsList>
           <TabsTrigger value="pto">PTOs ({ptos.length})</TabsTrigger>
@@ -67,7 +67,7 @@ export default function Approvals() {
           <TabsTrigger value="extension">Extensiones ({extensions.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="pto">
-          <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100 mt-4">
+          <div className="bg-card rounded-2xl border border-border divide-y divide-border mt-4">
             {ptos.map((p) => (
               <Row
                 key={p.id}
@@ -77,11 +77,11 @@ export default function Approvals() {
                 onReject={() => resolvePto(p.id, "rejected")}
               />
             ))}
-            {ptos.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">Sin solicitudes pendientes</p>}
+            {ptos.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">Sin solicitudes pendientes</p>}
           </div>
         </TabsContent>
         <TabsContent value="schedule">
-          <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100 mt-4">
+          <div className="bg-card rounded-2xl border border-border divide-y divide-border mt-4">
             {scheduleReqs.map((s) => (
               <Row
                 key={s.id}
@@ -91,11 +91,11 @@ export default function Approvals() {
                 onReject={() => resolveSchedule(s, "rejected")}
               />
             ))}
-            {scheduleReqs.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">Sin solicitudes pendientes</p>}
+            {scheduleReqs.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">Sin solicitudes pendientes</p>}
           </div>
         </TabsContent>
         <TabsContent value="extension">
-          <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100 mt-4">
+          <div className="bg-card rounded-2xl border border-border divide-y divide-border mt-4">
             {extensions.map((e) => (
               <Row
                 key={e.id}
@@ -105,7 +105,7 @@ export default function Approvals() {
                 onReject={() => resolveExtension(e, "rejected")}
               />
             ))}
-            {extensions.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">Sin solicitudes pendientes</p>}
+            {extensions.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">Sin solicitudes pendientes</p>}
           </div>
         </TabsContent>
       </Tabs>

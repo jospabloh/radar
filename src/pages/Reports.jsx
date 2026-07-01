@@ -41,14 +41,14 @@ export default function Reports() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-6">Reportes</h1>
+      <h1 className="text-2xl font-semibold text-foreground mb-6">Reportes</h1>
       <div className="flex gap-4 mb-6">
         <div><Label>Desde</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
         <div><Label>Hasta</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
       </div>
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+          <thead className="bg-background text-muted-foreground text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3">Empleado</th>
               <th className="text-right px-5 py-3">Horas</th>
@@ -58,20 +58,20 @@ export default function Reports() {
               <th className="text-right px-5 py-3">PTOs</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {rows.map((r) => (
               <tr key={r.emp.id}>
-                <td className="px-5 py-3 font-medium text-slate-900">{r.emp.full_name}</td>
+                <td className="px-5 py-3 font-medium text-foreground">{r.emp.full_name}</td>
                 <td className="px-5 py-3 text-right">{r.totalHours.toFixed(1)}</td>
                 <td className="px-5 py-3 text-right">{r.daysPresent}</td>
-                <td className="px-5 py-3 text-right text-yellow-600">{r.late}</td>
-                <td className="px-5 py-3 text-right text-red-600">{r.absent}</td>
+                <td className="px-5 py-3 text-right text-warning">{r.late}</td>
+                <td className="px-5 py-3 text-right text-destructive">{r.absent}</td>
                 <td className="px-5 py-3 text-right text-purple-600">{r.ptoCount}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">Sin datos en este rango</p>}
+        {rows.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">Sin datos en este rango</p>}
       </div>
     </div>
   );

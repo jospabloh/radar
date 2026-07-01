@@ -3,9 +3,9 @@ import { base44 } from "@/api/base44Client";
 import PageHeader from "@/components/PageHeader";
 
 const STATUS_STYLE = {
-  pending: "bg-yellow-100 text-yellow-700",
-  approved: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
+  pending: "bg-warning/10 text-warning",
+  approved: "bg-success/10 text-success",
+  rejected: "bg-destructive/10 text-destructive",
 };
 const STATUS_LABEL = { pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado" };
 const TYPE_LABEL = { pto: "Días/Permiso", schedule: "Cambio de horario", extension: "Extensión" };
@@ -33,20 +33,20 @@ export default function MyRequests() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Mis Solicitudes" subtitle="Estado de tus solicitudes de PTO, horario y extensiones" backTo="/portal" />
       <div className="max-w-2xl mx-auto px-6">
-        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+        <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {requests.map((r) => (
             <div key={`${r.type}-${r.id}`} className="flex items-center justify-between p-5">
               <div>
-                <p className="font-medium text-slate-900">{TYPE_LABEL[r.type]}</p>
-                <p className="text-sm text-slate-500">{r.detail}</p>
+                <p className="font-medium text-foreground">{TYPE_LABEL[r.type]}</p>
+                <p className="text-sm text-muted-foreground">{r.detail}</p>
               </div>
               <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
             </div>
           ))}
-          {requests.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">No tienes solicitudes</p>}
+          {requests.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No tienes solicitudes</p>}
         </div>
       </div>
     </div>

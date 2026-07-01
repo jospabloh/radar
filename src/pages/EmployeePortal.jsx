@@ -58,8 +58,8 @@ export default function EmployeePortal() {
 
   if (!employee) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-400">Cargando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Cargando...</p>
       </div>
     );
   }
@@ -68,39 +68,39 @@ export default function EmployeePortal() {
   const dayLabel = WEEKDAYS.find((d) => d.key === getTodayKey())?.label;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center px-6 py-10">
+    <div className="min-h-screen bg-background flex flex-col items-center px-6 py-10">
       <div className="w-full max-w-sm flex justify-between items-center mb-8">
         <div>
-          <p className="text-sm text-slate-500">Hola,</p>
-          <p className="font-semibold text-slate-900">{employee.full_name}</p>
+          <p className="text-sm text-muted-foreground">Hola,</p>
+          <p className="font-semibold text-foreground">{employee.full_name}</p>
         </div>
-        <button onClick={() => base44.auth.logout("/login")} className="text-slate-400">
+        <button onClick={() => base44.auth.logout("/login")} className="text-muted-foreground">
           <LogOut className="w-5 h-5" />
         </button>
       </div>
 
-      <p className="text-5xl font-bold text-slate-900 tabular-nums mb-1">
+      <p className="text-5xl font-bold text-foreground tabular-nums mb-1">
         {now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </p>
-      <p className="text-slate-500 mb-8">
+      <p className="text-muted-foreground mb-8">
         {dayLabel} · {todaySchedule?.works ? `${todaySchedule.start} - ${todaySchedule.end}` : "Sin horario hoy"}
       </p>
 
       {!record?.check_in_time ? (
         <button
           onClick={handleCheckIn}
-          className="w-56 h-56 rounded-full bg-green-600 hover:bg-green-700 text-white text-xl font-semibold shadow-lg transition-transform active:scale-95"
+          className="w-56 h-56 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground text-xl font-semibold shadow-lg transition-transform active:scale-95"
         >
           Registrar Entrada
         </button>
       ) : !record?.check_out_time ? (
         <>
           <div className="text-center mb-6">
-            <p className="text-sm text-green-600 font-medium">Entrada registrada {record.check_in_time}</p>
+            <p className="text-sm text-success font-medium">Entrada registrada {record.check_in_time}</p>
           </div>
           <button
             onClick={handleCheckOut}
-            className="w-56 h-56 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xl font-semibold shadow-lg transition-transform active:scale-95"
+            className="w-56 h-56 rounded-full bg-foreground hover:bg-foreground/90 text-background text-xl font-semibold shadow-lg transition-transform active:scale-95"
           >
             Registrar Salida
           </button>
@@ -110,9 +110,9 @@ export default function EmployeePortal() {
         </>
       ) : (
         <div className="text-center">
-          <p className="text-lg font-semibold text-slate-900">Jornada completada</p>
-          <p className="text-sm text-slate-500 mt-1">Entrada {record.check_in_time} · Salida {record.check_out_time}</p>
-          <p className="text-sm text-slate-500">{record.hours_worked} horas trabajadas</p>
+          <p className="text-lg font-semibold text-foreground">Jornada completada</p>
+          <p className="text-sm text-muted-foreground mt-1">Entrada {record.check_in_time} · Salida {record.check_out_time}</p>
+          <p className="text-sm text-muted-foreground">{record.hours_worked} horas trabajadas</p>
         </div>
       )}
 
@@ -133,7 +133,7 @@ export default function EmployeePortal() {
           { label: "Soporte", to: "/soporte", icon: LifeBuoy },
           { label: "Novedades", to: "/historial-cambios", icon: History },
         ].map((item) => (
-          <Link key={item.to} to={item.to} className="flex flex-col items-center gap-1.5 text-slate-500 hover:text-green-700">
+          <Link key={item.to} to={item.to} className="flex flex-col items-center gap-1.5 text-muted-foreground hover:text-primary">
             <item.icon className="w-5 h-5" />
             <span className="text-[11px]">{item.label}</span>
           </Link>

@@ -4,14 +4,14 @@ import { Users, CheckCircle2, Clock, XCircle, PlaneTakeoff, Hourglass } from "lu
 import { computeStatus } from "@/lib/schedule";
 
 const STATUS_STYLE = {
-  on_time: "bg-green-100 text-green-700",
-  late: "bg-yellow-100 text-yellow-700",
-  late_pending: "bg-yellow-100 text-yellow-700",
-  absent: "bg-red-100 text-red-700",
-  extension: "bg-blue-100 text-blue-700",
-  auto_logout: "bg-slate-200 text-slate-600",
-  no_laboral: "bg-slate-100 text-slate-400",
-  not_started: "bg-slate-100 text-slate-400",
+  on_time: "bg-success/10 text-success",
+  late: "bg-warning/10 text-warning",
+  late_pending: "bg-warning/10 text-warning",
+  absent: "bg-destructive/10 text-destructive",
+  extension: "bg-primary/10 text-primary",
+  auto_logout: "bg-muted text-muted-foreground",
+  no_laboral: "bg-muted text-muted-foreground",
+  not_started: "bg-muted text-muted-foreground",
 };
 const STATUS_LABEL = {
   on_time: "A tiempo", late: "Tarde", late_pending: "Tarde", absent: "Ausente",
@@ -62,32 +62,32 @@ export default function CompanyDashboard() {
   const ausentes = rows.filter((r) => r.status === "absent").length;
 
   const cards = [
-    { label: "Total empleados", value: employees.length, icon: Users, color: "text-slate-700" },
-    { label: "Presentes ahora", value: presentes, icon: CheckCircle2, color: "text-green-600" },
-    { label: "Tardanzas hoy", value: tardanzas, icon: Clock, color: "text-yellow-600" },
-    { label: "Ausentes", value: ausentes, icon: XCircle, color: "text-red-600" },
+    { label: "Total empleados", value: employees.length, icon: Users, color: "text-muted-foreground" },
+    { label: "Presentes ahora", value: presentes, icon: CheckCircle2, color: "text-success" },
+    { label: "Tardanzas hoy", value: tardanzas, icon: Clock, color: "text-warning" },
+    { label: "Ausentes", value: ausentes, icon: XCircle, color: "text-destructive" },
     { label: "PTOs hoy", value: ptoToday, icon: PlaneTakeoff, color: "text-purple-600" },
-    { label: "Extensiones pendientes", value: extPending, icon: Hourglass, color: "text-blue-600" },
+    { label: "Extensiones pendientes", value: extPending, icon: Hourglass, color: "text-primary" },
   ];
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-6">Dashboard</h1>
+      <h1 className="text-2xl font-semibold text-foreground mb-6">Dashboard</h1>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {cards.map((c) => (
-          <div key={c.label} className="bg-white rounded-2xl border border-slate-100 p-4">
+          <div key={c.label} className="bg-card rounded-2xl border border-border p-4">
             <c.icon className={`w-5 h-5 mb-2 ${c.color}`} />
-            <p className="text-2xl font-semibold text-slate-900">{c.value}</p>
-            <p className="text-xs text-slate-500">{c.label}</p>
+            <p className="text-2xl font-semibold text-foreground">{c.value}</p>
+            <p className="text-xs text-muted-foreground">{c.label}</p>
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+      <div className="bg-card rounded-2xl border border-border divide-y divide-border">
         {rows.map(({ emp, record, status }) => (
           <div key={emp.id} className="flex items-center justify-between px-5 py-4">
             <div>
-              <p className="font-medium text-slate-900">{emp.full_name}</p>
-              <p className="text-xs text-slate-500">
+              <p className="font-medium text-foreground">{emp.full_name}</p>
+              <p className="text-xs text-muted-foreground">
                 {record?.check_in_time ? `Entrada ${record.check_in_time}` : "Sin entrada"}
                 {record?.check_out_time ? ` · Salida ${record.check_out_time}` : ""}
               </p>
@@ -95,7 +95,7 @@ export default function CompanyDashboard() {
             <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLE[status]}`}>{STATUS_LABEL[status]}</span>
           </div>
         ))}
-        {rows.length === 0 && <p className="p-6 text-center text-slate-400 text-sm">No hay empleados activos</p>}
+        {rows.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No hay empleados activos</p>}
       </div>
     </div>
   );

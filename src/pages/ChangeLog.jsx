@@ -11,15 +11,15 @@ const CHANGES = [
 
 export default function ChangeLog() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <PageHeader title="Historial de Cambios" subtitle="Actualizaciones y mejoras recientes en RADAR" />
       <div className="max-w-2xl mx-auto px-6 space-y-4">
         {CHANGES.map((c) => (
-          <div key={c.date} className="bg-white rounded-2xl border border-slate-100 p-5">
-            <p className="text-xs text-slate-400 mb-1">{c.date}</p>
-            <p className="font-semibold text-slate-900 mb-2">{c.title}</p>
+          <div key={c.date} className="bg-card rounded-2xl border border-border p-5">
+            <p className="text-xs text-muted-foreground mb-1">{c.date}</p>
+            <p className="font-semibold text-foreground mb-2">{c.title}</p>
             <ul className="list-disc list-inside space-y-1">
-              {c.items.map((i) => <li key={i} className="text-sm text-slate-600">{i}</li>)}
+              {c.items.map((i) => <li key={i} className="text-sm text-muted-foreground">{i}</li>)}
             </ul>
           </div>
         ))}
