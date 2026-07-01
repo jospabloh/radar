@@ -1,0 +1,35 @@
+{
+  "name": "SupportTicket",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "employee_name": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "abierto",
+        "en_proceso",
+        "resuelto"
+      ],
+      "default": "abierto"
+    }
+  },
+  "required": [
+    "company_id",
+    "subject",
+    "description"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "EmployeeDocument",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "file_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "employee_id",
+    "company_id",
+    "name",
+    "file_url"
+  ]
+}

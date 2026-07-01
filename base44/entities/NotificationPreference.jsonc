@@ -1,0 +1,23 @@
+{
+  "name": "NotificationPreference",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "email_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "whatsapp_enabled": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}

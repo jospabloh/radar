@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { getTodaysSchedule, WEEKDAYS, getTodayKey } from "@/lib/schedule";
-import { LogOut, PlaneTakeoff, Timer } from "lucide-react";
+import { Link } from "react-router-dom";
+import { LogOut, PlaneTakeoff, Timer, User, ListChecks, CalendarDays, Bell, BookOpen, LifeBuoy, History } from "lucide-react";
 import PTORequestDialog from "@/components/portal/PTORequestDialog";
 import ExtensionRequestDialog from "@/components/portal/ExtensionRequestDialog";
 
@@ -121,6 +122,23 @@ export default function EmployeePortal() {
 
       <PTORequestDialog open={showPto} onOpenChange={setShowPto} employee={employee} />
       <ExtensionRequestDialog open={showExt} onOpenChange={setShowExt} employee={employee} record={record} />
+
+      <div className="w-full max-w-sm grid grid-cols-4 gap-3 mt-10">
+        {[
+          { label: "Perfil", to: "/perfil-empleado", icon: User },
+          { label: "Solicitudes", to: "/mis-solicitudes", icon: ListChecks },
+          { label: "Calendario", to: "/calendario-asistencias", icon: CalendarDays },
+          { label: "Alertas", to: "/configuracion-notificaciones", icon: Bell },
+          { label: "Manual", to: "/manual-usuario", icon: BookOpen },
+          { label: "Soporte", to: "/soporte", icon: LifeBuoy },
+          { label: "Novedades", to: "/historial-cambios", icon: History },
+        ].map((item) => (
+          <Link key={item.to} to={item.to} className="flex flex-col items-center gap-1.5 text-slate-500 hover:text-green-700">
+            <item.icon className="w-5 h-5" />
+            <span className="text-[11px]">{item.label}</span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

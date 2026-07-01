@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Building2, LayoutDashboard, Users, CheckSquare, FileBarChart, LogOut } from "lucide-react";
+import {
+  Building2, LayoutDashboard, Users, CheckSquare, FileBarChart, LogOut,
+  Settings, LifeBuoy, BadgeDollarSign, BookOpen, History, BarChart3, CalendarClock, AlertTriangle, Calendar,
+} from "lucide-react";
 
 const NAV_BY_ROLE = {
   super_admin: [{ label: "Empresas", path: "/companies", icon: Building2 }],
@@ -10,10 +13,24 @@ const NAV_BY_ROLE = {
     { label: "Empleados", path: "/employees", icon: Users },
     { label: "Aprobaciones", path: "/approvals", icon: CheckSquare },
     { label: "Reportes", path: "/reports", icon: FileBarChart },
+    { label: "Analítica", path: "/analitica-productividad", icon: BarChart3 },
+    { label: "Incidencias", path: "/panel-incidencias", icon: AlertTriangle },
+    { label: "Calendario", path: "/calendario-asistencias", icon: Calendar },
+    { label: "Horarios", path: "/configuracion-horarios", icon: CalendarClock },
+    { label: "Empresa", path: "/configuracion-empresa", icon: Settings },
+    { label: "Licencias", path: "/gestion-licencias", icon: BadgeDollarSign },
+    { label: "Notificaciones", path: "/configuracion-notificaciones", icon: LifeBuoy },
+    { label: "Manual", path: "/manual-usuario", icon: BookOpen },
+    { label: "Soporte", path: "/soporte", icon: LifeBuoy },
+    { label: "Historial", path: "/historial-cambios", icon: History },
   ],
   store_manager: [
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { label: "Aprobaciones", path: "/approvals", icon: CheckSquare },
+    { label: "Incidencias", path: "/panel-incidencias", icon: AlertTriangle },
+    { label: "Calendario", path: "/calendario-asistencias", icon: Calendar },
+    { label: "Manual", path: "/manual-usuario", icon: BookOpen },
+    { label: "Soporte", path: "/soporte", icon: LifeBuoy },
   ],
 };
 

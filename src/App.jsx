@@ -20,6 +20,18 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import CompanySettings from '@/pages/CompanySettings';
+import SupportCenter from '@/pages/SupportCenter';
+import LicenseManagement from '@/pages/LicenseManagement';
+import UserManual from '@/pages/UserManual';
+import ChangeLog from '@/pages/ChangeLog';
+import EmployeeProfile from '@/pages/EmployeeProfile';
+import AttendanceCalendar from '@/pages/AttendanceCalendar';
+import NotificationSettings from '@/pages/NotificationSettings';
+import MyRequests from '@/pages/MyRequests';
+import ProductivityAnalytics from '@/pages/ProductivityAnalytics';
+import ShiftSettings from '@/pages/ShiftSettings';
+import IncidentPanel from '@/pages/IncidentPanel';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -56,6 +68,18 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Home />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/portal" element={<EmployeePortal />} />
+        <Route path="/configuracion-empresa" element={<CompanySettings />} />
+        <Route path="/soporte" element={<SupportCenter />} />
+        <Route path="/gestion-licencias" element={<LicenseManagement />} />
+        <Route path="/manual-usuario" element={<UserManual />} />
+        <Route path="/historial-cambios" element={<ChangeLog />} />
+        <Route path="/perfil-empleado" element={<EmployeeProfile />} />
+        <Route path="/calendario-asistencias" element={<AttendanceCalendar />} />
+        <Route path="/configuracion-notificaciones" element={<NotificationSettings />} />
+        <Route path="/mis-solicitudes" element={<MyRequests />} />
+        <Route path="/analitica-productividad" element={<ProductivityAnalytics />} />
+        <Route path="/configuracion-horarios" element={<ShiftSettings />} />
+        <Route path="/panel-incidencias" element={<IncidentPanel />} />
         <Route element={<AppLayout />}>
           <Route path="/companies" element={<SuperAdminCompanies />} />
           <Route path="/dashboard" element={<CompanyDashboard />} />
