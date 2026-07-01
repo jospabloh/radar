@@ -11,12 +11,14 @@ const PLANS = [
 ];
 
 export default function LicenseManagement() {
+  const [user, setUser] = useState(null);
   const [company, setCompany] = useState(null);
   const [employeeCount, setEmployeeCount] = useState(0);
   const [requested, setRequested] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(async (u) => {
+      setUser(u);
       if (!u.company_id) return;
       const c = await base44.entities.Company.get(u.company_id);
       setCompany(c);
@@ -26,11 +28,18 @@ export default function LicenseManagement() {
   }, []);
 
   const handleUpgradeRequest = async () => {
-    await base44.entities.SupportTicket.create({
+    const ticket = await base44.entities.SupportTicket.create({
       company_id: company.id,
+      company_name: company.name,
+      created_by_id: user?.id,
+      created_by_email: user?.email,
+      category: "billing",
+      priority: "normal",
       subject: "Solicitud de upgrade de plan",
       description: `La empresa ${company.name} solicita información para escalar su plan actual (${company.tier}).`,
     });
+    // Fire-and-forget: push the new ticket to ACACIA Mission Control in real time.
+    base44.functions.invoke("notifyTicketCreated", { ticketId: ticket.id }).catch(() => {});
     setRequested(true);
   };
 

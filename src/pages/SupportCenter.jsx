@@ -7,11 +7,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const STATUS_STYLE = {
-  abierto: "bg-yellow-100 text-yellow-700",
-  en_proceso: "bg-blue-100 text-blue-700",
-  resuelto: "bg-green-100 text-green-700",
+  open: "bg-yellow-100 text-yellow-700",
+  in_progress: "bg-blue-100 text-blue-700",
+  waiting_customer: "bg-orange-100 text-orange-700",
+  resolved: "bg-green-100 text-green-700",
+  closed: "bg-slate-100 text-slate-600",
 };
-const STATUS_LABEL = { abierto: "Abierto", en_proceso: "En proceso", resuelto: "Resuelto" };
+const STATUS_LABEL = {
+  open: "Abierto",
+  in_progress: "En proceso",
+  waiting_customer: "Esperando cliente",
+  resolved: "Resuelto",
+  closed: "Cerrado",
+};
 
 export default function SupportCenter() {
   const [user, setUser] = useState(null);
@@ -45,12 +53,17 @@ export default function SupportCenter() {
   const handleSubmit = async () => {
     if (!subject || !description) return;
     setSaving(true);
-    await base44.entities.SupportTicket.create({
+    const ticket = await base44.entities.SupportTicket.create({
       company_id: companyId,
       employee_name: user.full_name,
+      created_by_id: user.id,
+      created_by_email: user.email,
+      priority: "normal",
       subject,
       description,
     });
+    // Fire-and-forget: push the new ticket to ACACIA Mission Control in real time.
+    base44.functions.invoke("notifyTicketCreated", { ticketId: ticket.id }).catch(() => {});
     setSubject("");
     setDescription("");
     setSaving(false);
@@ -85,9 +98,11 @@ export default function SupportCenter() {
                   <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
                     <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="abierto">Abierto</SelectItem>
-                      <SelectItem value="en_proceso">En proceso</SelectItem>
-                      <SelectItem value="resuelto">Resuelto</SelectItem>
+                      <SelectItem value="open">Abierto</SelectItem>
+                      <SelectItem value="in_progress">En proceso</SelectItem>
+                      <SelectItem value="waiting_customer">Esperando cliente</SelectItem>
+                      <SelectItem value="resolved">Resuelto</SelectItem>
+                      <SelectItem value="closed">Cerrado</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
