@@ -7,6 +7,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
+import SessionHeartbeat from '@/lib/SessionHeartbeat';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Home from '@/pages/Home';
 import Onboarding from '@/pages/Onboarding';
@@ -104,6 +105,7 @@ function App() {
         <QueryClientProvider client={queryClientInstance}>
           <Router>
             <ScrollToTop />
+            <SessionHeartbeat />
             <AuthenticatedApp />
           </Router>
           <Toaster />

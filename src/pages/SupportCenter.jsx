@@ -22,6 +22,12 @@ const STATUS_LABEL = {
   closed: "Cerrado",
 };
 
+function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function SupportCenter() {
   const [user, setUser] = useState(null);
   const [companyId, setCompanyId] = useState(null);
@@ -30,7 +36,6 @@ export default function SupportCenter() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
-  const [filter, setFilter] = useState("todos");
   const [search, setSearch] = useState("");
 
   const load = useCallback(async (cid, u, admin) => {
@@ -78,15 +83,8 @@ export default function SupportCenter() {
     load(companyId, user, isAdmin);
   };
 
-  const counts = useMemo(() => {
-    const c = { todos: tickets?.length || 0, abierto: 0, en_proceso: 0, resuelto: 0 };
-    (tickets || []).forEach((t) => { if (c[t.status] != null) c[t.status] += 1; });
-    return c;
-  }, [tickets]);
-
   const visible = useMemo(() => {
     let list = tickets || [];
-    if (filter !== "todos") list = list.filter((t) => t.status === filter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -97,7 +95,7 @@ export default function SupportCenter() {
       );
     }
     return list;
-  }, [tickets, filter, search]);
+  }, [tickets, search]);
 
   return (
     <div className="min-h-screen bg-background pb-16">
@@ -126,46 +124,18 @@ export default function SupportCenter() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
-          {tickets.map((t) => (
-            <div key={t.id} className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-slate-900">{t.subject}</p>
-                  <p className="text-sm text-slate-500 mt-1">{t.description}</p>
-                  {isAdmin && <p className="text-xs text-slate-400 mt-1">{t.employee_name}</p>}
-                </div>
-                {isAdmin ? (
-                  <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
-                    <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="open">Abierto</SelectItem>
-                      <SelectItem value="in_progress">En proceso</SelectItem>
-                      <SelectItem value="waiting_customer">Esperando cliente</SelectItem>
-                      <SelectItem value="resolved">Resuelto</SelectItem>
-                      <SelectItem value="closed">Cerrado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_STYLE[t.status]}`}>
-                    {STATUS_LABEL[t.status]}
-                  </span>
-                )}
-              </button>
-            ))}
+        {/* Admin search */}
+        {isAdmin && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar tickets…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
           </div>
-          {isAdmin && (
-            <div className="relative sm:ml-auto sm:w-56">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9"
-              />
-            </div>
-          )}
-        </div>
+        )}
 
         {/* List */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border shadow-sm overflow-hidden">
@@ -197,13 +167,17 @@ export default function SupportCenter() {
                     <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
                       <SelectTrigger className="w-32 h-8 text-xs shrink-0"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="abierto">Abierto</SelectItem>
-                        <SelectItem value="en_proceso">En proceso</SelectItem>
-                        <SelectItem value="resuelto">Resuelto</SelectItem>
+                        <SelectItem value="open">Abierto</SelectItem>
+                        <SelectItem value="in_progress">En proceso</SelectItem>
+                        <SelectItem value="waiting_customer">Esperando cliente</SelectItem>
+                        <SelectItem value="resolved">Resuelto</SelectItem>
+                        <SelectItem value="closed">Cerrado</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
-                    <StatusBadge status={t.status} />
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_STYLE[t.status]}`}>
+                      {STATUS_LABEL[t.status]}
+                    </span>
                   )}
                 </div>
               </div>
