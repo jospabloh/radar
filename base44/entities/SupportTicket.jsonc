@@ -23,7 +23,8 @@
     "messages_count": { "type": "number", "default": 0, "description": "Número de mensajes en el hilo" },
     "unread_for_owner": { "type": "boolean", "default": true, "description": "Hay mensajes sin leer para el soporte" },
     "unread_for_tenant": { "type": "boolean", "default": false, "description": "Hay mensajes sin leer para la empresa" },
-    "metadata": { "type": "object", "description": "Datos adicionales" }
+    "metadata": { "type": "object", "description": "Datos adicionales" },
+    "ai_brief": { "type": "object", "description": "Especificación estructurada que arma el asistente BA/PO al levantar un feature o incidencia (historia de usuario, criterios de aceptación, pasos de reproducción, impacto, etc.). El mismo brief se incrusta en 'description' en Markdown, así que este campo es aditivo para el render enriquecido en Mission Control." }
   },
   "required": ["company_id", "subject"],
   "rls": {

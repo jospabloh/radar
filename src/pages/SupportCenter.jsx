@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { LifeBuoy, Search, Send, Loader2, Inbox } from "lucide-react";
+import { LifeBuoy, Search, Send, Loader2, Inbox, Sparkles } from "lucide-react";
+import { composeTicketBody } from "@/lib/aiIntake";
+import AiIntakeChat from "@/components/support/AiIntakeChat";
 
 const STATUS_STYLE = {
   open: "bg-yellow-100 text-yellow-700",
@@ -22,6 +24,25 @@ const STATUS_LABEL = {
   closed: "Cerrado",
 };
 
+// Tipos de solicitud. Los marcados con `ai: true` (nueva funcionalidad e
+// incidencia) pasan por el asistente BA/PO experto, que entrevista al usuario y
+// arma un brief accionable ANTES de escalar. El resto se crea directo.
+const TICKET_TYPES = [
+  { value: "feature", label: "Nueva funcionalidad o mejora", ai: true },
+  { value: "bug", label: "Algo no funciona (incidencia)", ai: true },
+  { value: "attendance", label: "Asistencia" },
+  { value: "scheduling", label: "Horarios y turnos" },
+  { value: "billing", label: "Facturación o plan" },
+  { value: "account", label: "Cuenta y accesos" },
+  { value: "other", label: "Otra consulta" },
+];
+const AI_TYPES = new Set(["feature", "bug"]);
+// `feature` y `bug` no existen en el enum `category` de SupportTicket; se mapean
+// a valores válidos ya desplegados. El tipo real (feature/bug) viaja íntegro en
+// `ai_brief.kind` y en el cuerpo Markdown del ticket.
+const CATEGORY_FOR_TYPE = { feature: "other", bug: "technical" };
+const categoryFor = (type) => CATEGORY_FOR_TYPE[type] || type;
+
 function fmtDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -35,6 +56,8 @@ export default function SupportCenter() {
   const [tickets, setTickets] = useState(null);
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [ticketType, setTicketType] = useState("other");
+  const [intakeOpen, setIntakeOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -58,24 +81,54 @@ export default function SupportCenter() {
     });
   }, [load]);
 
-  const handleSubmit = async () => {
+  // Para feature/incidencia abrimos primero la entrevista del asistente; el resto
+  // de tipos se crea directo (comportamiento previo intacto).
+  const handleSubmit = () => {
     if (!subject.trim() || !description.trim()) return;
+    if (AI_TYPES.has(ticketType)) {
+      setIntakeOpen(true);
+      return;
+    }
+    createTicket(null);
+  };
+
+  /**
+   * Crea el ticket. Si viene un `brief` de la IA, el cuerpo se enriquece con la
+   * especificación en Markdown (llega a todos lados aunque el esquema no esté
+   * desplegado) y se adjunta el brief estructurado en `ai_brief` para el render
+   * enriquecido en Mission Control.
+   *
+   * @param {import("@/lib/aiIntake").IntakeBrief | null} brief
+   */
+  const createTicket = async (brief) => {
     setSaving(true);
-    const ticket = await base44.entities.SupportTicket.create({
-      company_id: companyId,
-      employee_name: user.full_name,
-      created_by_id: user.id,
-      created_by_email: user.email,
-      priority: "normal",
-      subject,
-      description,
-    });
-    // Fire-and-forget: push the new ticket to ACACIA Mission Control in real time.
-    base44.functions.invoke("notifyTicketCreated", { ticketId: ticket.id }).catch(() => {});
-    setSubject("");
-    setDescription("");
-    setSaving(false);
-    load(companyId, user, isAdmin);
+    try {
+      /** @type {Record<string, any>} */
+      const payload = {
+        company_id: companyId,
+        employee_name: user.full_name,
+        created_by_id: user.id,
+        created_by_email: user.email,
+        category: categoryFor(ticketType),
+        priority: "normal",
+        subject,
+        description,
+      };
+      if (brief) {
+        payload.description = composeTicketBody(description, brief);
+        payload.ai_brief = brief;
+      }
+      const ticket = await base44.entities.SupportTicket.create(payload);
+      // Fire-and-forget: push the new ticket to ACACIA Mission Control in real time.
+      base44.functions.invoke("notifyTicketCreated", { ticketId: ticket.id }).catch(() => {});
+      setSubject("");
+      setDescription("");
+      setTicketType("other");
+      setIntakeOpen(false);
+      load(companyId, user, isAdmin);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleStatusChange = async (id, status) => {
@@ -109,19 +162,52 @@ export default function SupportCenter() {
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <LifeBuoy className="w-4 h-4 text-primary" /> Nuevo ticket
           </div>
-          <Input placeholder="Asunto" value={subject} onChange={(e) => setSubject(e.target.value)} />
-          <Textarea
-            placeholder="Describe tu problema con el mayor detalle posible…"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-          />
-          <div className="flex justify-end">
-            <Button onClick={handleSubmit} disabled={saving || !subject.trim() || !description.trim()}>
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-              {saving ? "Enviando…" : "Enviar ticket"}
-            </Button>
-          </div>
+          {intakeOpen ? (
+            <AiIntakeChat
+              kind={ticketType === "bug" ? "bug" : "feature"}
+              subject={subject}
+              description={description}
+              saving={saving}
+              onBack={() => setIntakeOpen(false)}
+              onComplete={(brief) => createTicket(brief)}
+            />
+          ) : (
+            <>
+              <Select value={ticketType} onValueChange={setTicketType}>
+                <SelectTrigger><SelectValue placeholder="Tipo de solicitud" /></SelectTrigger>
+                <SelectContent>
+                  {TICKET_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input placeholder="Asunto" value={subject} onChange={(e) => setSubject(e.target.value)} />
+              <Textarea
+                placeholder="Describe tu solicitud con el mayor detalle posible…"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+              />
+              {AI_TYPES.has(ticketType) && (
+                <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                  <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                  Un asistente experto te hará unas preguntas para dejar tu solicitud lista para el equipo.
+                </p>
+              )}
+              <div className="flex justify-end">
+                <Button onClick={handleSubmit} disabled={saving || !subject.trim() || !description.trim()}>
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : AI_TYPES.has(ticketType) ? (
+                    <Sparkles className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-2" />
+                  )}
+                  {saving ? "Enviando…" : AI_TYPES.has(ticketType) ? "Continuar con el asistente" : "Enviar ticket"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Admin search */}
