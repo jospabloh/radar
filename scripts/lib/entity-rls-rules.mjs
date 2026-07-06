@@ -15,6 +15,12 @@
  *     only bare built-ins are `{{user.id}}`, `{{user.email}}`, `{{user.role}}`.
  *     `{{user.company_id}}` resolves to nothing → the rule matches nothing →
  *     ZERO rows for everyone (the actual prod failure).
+ *
+ * A third, worse gap (found 2026-07-06 in the radar app): an entity with NO
+ * `rls` key at all parses fine and passes every check above, because those
+ * checks only run `if (rls)`. No rls block means Base44 enforces nothing —
+ * any authenticated user, any tenant, full read/write. That is checked
+ * separately below, before the `if (!rls) continue` fast path.
  */
 
 import { readFileSync, readdirSync } from "node:fs";
@@ -92,7 +98,21 @@ export function collectRlsErrors(entitiesDir) {
       continue;
     }
     const rls = schema.rls;
-    if (!rls) continue;
+    const hasBusinessId = schema.properties &&
+      "company_id" in schema.properties;
+
+    if (!rls) {
+      if (hasBusinessId) {
+        errors.push(
+          `${entity}: tenant-scoped entity (has company_id) defines NO "rls" ` +
+            `block at all — RLS is completely unenforced (any authenticated ` +
+            `user, any tenant, can read/write every row). Add a read/create/` +
+            `update/delete rls block scoped by data.company_id plus the ` +
+            `service-role {"user_condition":{"role":"admin"}} branch.`,
+        );
+      }
+      continue;
+    }
 
     for (const op of ["create", "read", "update", "delete"]) {
       if (!(op in rls)) continue;
@@ -104,8 +124,6 @@ export function collectRlsErrors(entitiesDir) {
     // data.company_id == {{user.data.company_id}}. Platform-admin entities
     // that gate read behind role:admin (TenantRule, EmailNotification) are
     // exempt — they are not per-tenant readable.
-    const hasBusinessId = schema.properties &&
-      "company_id" in schema.properties;
     const adminGated = rls.read &&
       JSON.stringify(rls.read) === '{"user_condition":{"role":"admin"}}';
     if (hasBusinessId && rls.read && !adminGated) {
