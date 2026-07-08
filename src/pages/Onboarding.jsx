@@ -13,23 +13,26 @@ export default function Onboarding() {
         return;
       }
 
-      const matches = await base44.entities.Employee.filter({ email: user.email });
-      if (matches.length > 0) {
-        const emp = matches[0];
-        await base44.entities.Employee.update(emp.id, { user_id: user.id });
-        await base44.auth.updateMe({ app_role: emp.role, company_id: emp.company_id });
+      // app_role/company_id are privileged fields (locked to admin-only writes
+      // via field-level RLS on the User entity) — the server-side function
+      // validates the caller's email against Employee/Company before assigning
+      // them, instead of the client setting them on itself via updateMe.
+      try {
+        const res = await base44.functions.invoke("completeOnboarding", {});
+        const data = res?.data;
+        if (data?.error === "not_found") {
+          setStatus("not_found");
+          return;
+        }
+        if (data?.founder) {
+          window.location.href = "/companies";
+          return;
+        }
         window.location.href = "/";
-        return;
+      } catch (err) {
+        console.error("Error completing onboarding:", err);
+        setStatus("not_found");
       }
-
-      const companies = await base44.entities.Company.list();
-      if (companies.length === 0) {
-        await base44.auth.updateMe({ app_role: "super_admin" });
-        window.location.href = "/companies";
-        return;
-      }
-
-      setStatus("not_found");
     };
     run();
   }, []);

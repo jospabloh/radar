@@ -9,6 +9,15 @@
   // RLS: service role (role:admin) has full access so the bridge can list/revoke;
   // an end user only touches THEIR OWN rows, scoped by the built-in created_by_id
   // (Base44 sets it on create — cannot be spoofed by a forged data.user_id).
+  //
+  // SECURITY: row-level `update` grants the owner write access to every field on
+  // their own row (needed so the heartbeat can move last_active_at/device), but
+  // that also let a user who was just force-logged-out (revoked_at set by
+  // Mission Control) self-clear revoked_at/revoked_by and keep their session
+  // alive — defeating the revoke feature. Those two fields carry FIELD-LEVEL
+  // write RLS locking them to role `admin` (the service-role tier Mission
+  // Control's bridge evaluates as); last_active_at/device/etc. stay
+  // self-writable by the session owner.
   "name": "AppSession",
   "type": "object",
   "properties": {
@@ -17,8 +26,17 @@
     "device": { "type": "string", "description": "Etiqueta corta del navegador/dispositivo (p.ej. 'Chrome · macOS')" },
     "started_at": { "type": "string", "format": "date-time", "description": "Inicio de sesión" },
     "last_active_at": { "type": "string", "format": "date-time", "description": "Última actividad (movida por el latido)" },
-    "revoked_at": { "type": "string", "format": "date-time", "description": "Marcada por Mission Control para forzar el cierre de sesión" },
-    "revoked_by": { "type": "string", "description": "Operador que forzó el cierre (auditoría)" }
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Marcada por Mission Control para forzar el cierre de sesión",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "revoked_by": {
+      "type": "string",
+      "description": "Operador que forzó el cierre (auditoría)",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    }
   },
   "required": ["user_email"],
   "rls": {
