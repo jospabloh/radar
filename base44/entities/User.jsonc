@@ -1,4 +1,17 @@
 {
+  // User — the Base44 auth user, extended with platform/tenant fields.
+  //
+  // SECURITY: role/app_role/company_id carry FIELD-LEVEL write RLS locking them
+  // to role `admin` — the tier the service role evaluates as. End users
+  // therefore CANNOT set their own role or company via auth.updateMe (that path
+  // let any self-registered user escalate to admin, or hop into any other
+  // company's data by self-setting company_id). All legitimate changes now flow
+  // through the service-role backend function `completeOnboarding`.
+  //
+  // DEPLOY ORDER: deploy `completeOnboarding` FIRST, then this schema. If the
+  // lock lands before the function is live, onboarding silently no-ops (Base44
+  // drops disallowed field writes from the old client-side updateMe calls) and
+  // new users get stuck.
   "name": "User",
   "type": "object",
   "properties": {
@@ -8,7 +21,8 @@
         "admin",
         "user"
       ],
-      "default": "user"
+      "default": "user",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "app_role": {
       "type": "string",
@@ -17,10 +31,12 @@
         "company_admin",
         "store_manager",
         "employee"
-      ]
+      ],
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "company_id": {
-      "type": "string"
+      "type": "string",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "rls": {
