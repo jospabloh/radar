@@ -39,8 +39,18 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Idempotent: a user who already completed onboarding just gets their
-    // current assignment echoed back instead of re-running the flow.
+    // current assignment echoed back instead of re-running the flow. Also
+    // backfills `employee_id` for accounts onboarded before that field
+    // existed — EmployeePortal.jsx calls this once for any employee whose
+    // `user.employee_id` is still unset (see its `load()`).
     if (user.app_role) {
+      if (!user.employee_id) {
+        const sr = base44.asServiceRole;
+        const linked = await sr.entities.Employee.filter({ user_id: user.id });
+        if (linked.length > 0) {
+          await sr.entities.User.update(user.id, { employee_id: linked[0].id });
+        }
+      }
       return Response.json({
         success: true,
         already_onboarded: true,
@@ -63,6 +73,7 @@ Deno.serve(async (req) => {
       await sr.entities.User.update(user.id, {
         app_role: emp.role,
         company_id: emp.company_id,
+        employee_id: emp.id,
       });
       return Response.json({ success: true, app_role: emp.role, company_id: emp.company_id });
     }

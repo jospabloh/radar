@@ -1,4 +1,18 @@
 {
+  // AttendanceRecord — one row per employee per day (check-in/out, hours,
+  // status). create/update are scoped to the CALLER'S OWN employee_id (via
+  // {{user.data.employee_id}}, set by completeOnboarding — see User.jsonc),
+  // not just data.company_id. A company_id-only rule let any authenticated
+  // employee in a company create/edit ANOTHER employee's attendance record
+  // by passing a different employee_id (e.g. mark a coworker present, or
+  // edit their hours_worked) since employee_id was client-supplied and
+  // never checked against the caller's own identity.
+  //
+  // Manager writes to OTHER employees' rows (extension approval in
+  // Approvals.jsx, incident notes in IncidentPanel.jsx) no longer qualify
+  // under this narrower rule, so they go through the service-role function
+  // `updateAttendanceRecord`, which verifies the caller's app_role and
+  // tenant before writing via asServiceRole (role:admin branch below).
   "name": "AttendanceRecord",
   "type": "object",
   "properties": {
@@ -54,13 +68,23 @@
     },
     "create": {
       "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
+        {
+          "$and": [
+            { "data.company_id": "{{user.data.company_id}}" },
+            { "data.employee_id": "{{user.data.employee_id}}" }
+          ]
+        },
         { "user_condition": { "role": "admin" } }
       ]
     },
     "update": {
       "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
+        {
+          "$and": [
+            { "data.company_id": "{{user.data.company_id}}" },
+            { "data.employee_id": "{{user.data.employee_id}}" }
+          ]
+        },
         { "user_condition": { "role": "admin" } }
       ]
     },

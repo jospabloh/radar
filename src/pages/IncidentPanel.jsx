@@ -29,7 +29,7 @@ export default function IncidentPanel() {
   }, [load]);
 
   const handleSaveNote = async (id) => {
-    await base44.entities.AttendanceRecord.update(id, { notes: notes[id] });
+    await base44.functions.invoke("updateAttendanceRecord", { recordId: id, updates: { notes: notes[id] } });
   };
 
   return (
