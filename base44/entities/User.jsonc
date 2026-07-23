@@ -37,6 +37,11 @@
     "company_id": {
       "type": "string",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Employee row this account is linked to (set by completeOnboarding). Lets self-service writes on employee-owned entities (e.g. AttendanceRecord) require data.employee_id == {{user.data.employee_id}} instead of trusting a client-supplied employee_id.",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "rls": {

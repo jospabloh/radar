@@ -20,6 +20,12 @@ export default function EmployeePortal() {
     const user = await base44.auth.me();
     const emps = await base44.entities.Employee.filter({ user_id: user.id });
     const emp = emps[0];
+    if (emp && !user.employee_id) {
+      // Backfill User.employee_id for accounts onboarded before that field
+      // existed — AttendanceRecord create/update RLS now requires it to
+      // match the caller's own employee record.
+      await base44.functions.invoke("completeOnboarding", {}).catch(() => {});
+    }
     setEmployee(emp);
     if (emp) {
       const recs = await base44.entities.AttendanceRecord.filter({ employee_id: emp.id, date: today });

@@ -52,7 +52,10 @@ export default function Approvals() {
   const resolveExtension = async (req, status) => {
     await base44.entities.ExtensionRequest.update(req.id, { status });
     if (status === "approved") {
-      await base44.entities.AttendanceRecord.update(req.attendance_record_id, { status: "extension", extension_minutes: req.requested_minutes });
+      await base44.functions.invoke("updateAttendanceRecord", {
+        recordId: req.attendance_record_id,
+        updates: { status: "extension", extension_minutes: req.requested_minutes },
+      });
     }
     load(companyId);
   };
