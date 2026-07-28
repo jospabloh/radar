@@ -2,6 +2,7 @@ import React from "react";
 import PageHeader from "@/components/PageHeader";
 
 const CHANGES = [
+  { date: "2026-07-28", title: "Auditoría de seguridad", items: ["Corregido: un empleado ya no puede aprobar su propia solicitud de PTO, cambio de horario o extensión", "Corregido: un empleado ya no puede modificar el plan/licencia de su empresa directamente", "Corregido: los datos de otro usuario (incluido su email) ya no son editables por cualquier compañero", "Corregido: las preferencias de notificación de otro usuario ya no son modificables por cualquier compañero"] },
   { date: "2026-07-01", title: "RADAR", items: ["La plataforma se renombró a RADAR", "El nombre de la empresa activa ahora se muestra en el panel"] },
   { date: "2026-06-20", title: "Monitoreo automático de asistencia", items: ["Detección automática de ausencias", "Cierre automático de jornadas abiertas cada 15 minutos"] },
   { date: "2026-06-10", title: "Portal del empleado", items: ["Solicitudes de PTO desde el portal", "Solicitudes de extensión de horario"] },

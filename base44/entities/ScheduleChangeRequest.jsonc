@@ -1,4 +1,11 @@
 {
+  // SECURITY: `status` carries FIELD-LEVEL write RLS locking it to role
+  // `admin` (service role) — same reasoning as PTORequest.jsonc: the
+  // top-level `update` rule has no manager/admin app_role check, so any
+  // employee could approve their own schedule change directly. Manager
+  // approve/reject now goes through the service-role function
+  // `resolveApprovalRequest`, which also reconciles Employee.schedule on
+  // approval (moved out of Approvals.jsx's direct client write).
   "name": "ScheduleChangeRequest",
   "type": "object",
   "properties": {
@@ -24,7 +31,8 @@
         "approved",
         "rejected"
       ],
-      "default": "pending"
+      "default": "pending",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "required": [

@@ -12,6 +12,15 @@
   // lock lands before the function is live, onboarding silently no-ops (Base44
   // drops disallowed field writes from the old client-side updateMe calls) and
   // new users get stuck.
+  //
+  // SECURITY: `update`'s tenant-wide branch (data.company_id match) was
+  // removed — it let ANY user in a company write to ANY other user's row in
+  // that company (not just their own), including unlocked builtin fields
+  // like email/full_name. Combined with a password-reset flow keyed on
+  // email, that was an account-takeover path: a coworker could change your
+  // email to one they control, then trigger a reset. No code in src/ writes
+  // to another user's User row (grepped for entities.User.update — no call
+  // sites at all), so self ({{user.id}}) + service-role admin is sufficient.
   "name": "User",
   "type": "object",
   "properties": {
@@ -55,7 +64,6 @@
     "update": {
       "$or": [
         { "id": "{{user.id}}" },
-        { "data.company_id": "{{user.data.company_id}}" },
         { "user_condition": { "role": "admin" } }
       ]
     },

@@ -9,7 +9,7 @@ const ARTICLES = [
   { title: "Cómo solicitar una extensión de horario", content: "Después de registrar tu entrada, presiona 'Solicitar extensión 30 min' e indica el motivo." },
   { title: "Cómo consultar el estado de mis solicitudes", content: "Visita la página 'Mis Solicitudes' para ver el estado de tus PTOs, extensiones y cambios de horario." },
   { title: "Cómo agregar empleados (administradores)", content: "Desde el Dashboard entra a 'Empleados' y presiona 'Nuevo empleado' para capturar sus datos y horario." },
-  { title: "Cómo aprobar solicitudes (gerentes/administradores)", content: "Entra a 'Aprobaciones' y revisa las pestañas de PTO, cambios de horario y extensiones para aprobar o rechazar." },
+  { title: "Cómo aprobar solicitudes (gerentes/administradores)", content: "Entra a 'Aprobaciones' y revisa las pestañas de PTO, cambios de horario y extensiones para aprobar o rechazar. Solo store managers, company admins y super admins pueden aprobar — un empleado no puede aprobar su propia solicitud." },
   { title: "Cómo actualizar los datos de mi empresa", content: "Los administradores pueden entrar a 'Configuración de Empresa' para editar el nombre, zona horaria y WhatsApp." },
   { title: "Cómo cargar documentos a mi expediente", content: "En 'Perfil de Empleado' puedes subir documentos como identificación o contrato desde la sección de documentos." },
 ];

@@ -19,8 +19,11 @@ function Row({ title, subtitle, onApprove, onReject }) {
   );
 }
 
+const MANAGER_ROLES = new Set(["company_admin", "store_manager", "super_admin"]);
+
 export default function Approvals() {
   const [companyId, setCompanyId] = useState(null);
+  const [isManager, setIsManager] = useState(null);
   const [ptos, setPtos] = useState([]);
   const [scheduleReqs, setScheduleReqs] = useState([]);
   const [extensions, setExtensions] = useState([]);
@@ -34,31 +37,30 @@ export default function Approvals() {
   useEffect(() => {
     base44.auth.me().then((u) => {
       setCompanyId(u.company_id);
-      load(u.company_id);
+      setIsManager(MANAGER_ROLES.has(u.app_role));
+      if (MANAGER_ROLES.has(u.app_role)) load(u.company_id);
     });
   }, [load]);
 
-  const resolvePto = async (id, status) => {
-    await base44.entities.PTORequest.update(id, { status });
+  // Actual authorization is enforced server-side by resolveApprovalRequest
+  // (it checks the caller's app_role before writing); this gate just keeps a
+  // non-manager from seeing pending requests or a confusing "approve" button
+  // that would be rejected by the backend.
+  const resolve = async (entity, requestId, status) => {
+    await base44.functions.invoke("resolveApprovalRequest", { entity, requestId, status });
     load(companyId);
   };
-  const resolveSchedule = async (req, status) => {
-    await base44.entities.ScheduleChangeRequest.update(req.id, { status });
-    if (status === "approved") {
-      await base44.entities.Employee.update(req.employee_id, { schedule: req.proposed_schedule });
-    }
-    load(companyId);
-  };
-  const resolveExtension = async (req, status) => {
-    await base44.entities.ExtensionRequest.update(req.id, { status });
-    if (status === "approved") {
-      await base44.functions.invoke("updateAttendanceRecord", {
-        recordId: req.attendance_record_id,
-        updates: { status: "extension", extension_minutes: req.requested_minutes },
-      });
-    }
-    load(companyId);
-  };
+  const resolvePto = (id, status) => resolve("PTORequest", id, status);
+  const resolveSchedule = (req, status) => resolve("ScheduleChangeRequest", req.id, status);
+  const resolveExtension = (req, status) => resolve("ExtensionRequest", req.id, status);
+
+  if (isManager === false) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto">
+        <p className="text-center text-muted-foreground text-sm mt-12">No tienes permiso para ver esta página.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
