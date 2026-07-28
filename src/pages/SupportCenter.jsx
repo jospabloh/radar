@@ -1,20 +1,22 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 import { LifeBuoy, Search, Send, Loader2, Inbox, Sparkles } from "lucide-react";
 import { composeTicketBody } from "@/lib/aiIntake";
 import AiIntakeChat from "@/components/support/AiIntakeChat";
 
 const STATUS_STYLE = {
-  open: "bg-yellow-100 text-yellow-700",
-  in_progress: "bg-blue-100 text-blue-700",
-  waiting_customer: "bg-orange-100 text-orange-700",
-  resolved: "bg-green-100 text-green-700",
-  closed: "bg-slate-100 text-slate-600",
+  open: "bg-warning/10 text-warning",
+  in_progress: "bg-primary/10 text-primary",
+  waiting_customer: "bg-accent text-accent-foreground",
+  resolved: "bg-success/10 text-success",
+  closed: "bg-muted text-muted-foreground",
 };
 const STATUS_LABEL = {
   open: "Abierto",
@@ -50,9 +52,9 @@ function fmtDate(iso) {
 }
 
 export default function SupportCenter() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
+  const isAdmin = user?.app_role === "company_admin";
   const [companyId, setCompanyId] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [tickets, setTickets] = useState(null);
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -67,19 +69,17 @@ export default function SupportCenter() {
   }, []);
 
   useEffect(() => {
-    base44.auth.me().then(async (u) => {
-      setUser(u);
-      const admin = u.app_role === "company_admin";
-      setIsAdmin(admin);
-      let cid = u.company_id;
+    if (!user) return;
+    (async () => {
+      let cid = user.company_id;
       if (!cid) {
-        const emps = await base44.entities.Employee.filter({ user_id: u.id });
+        const emps = await base44.entities.Employee.filter({ user_id: user.id });
         cid = emps[0]?.company_id;
       }
       setCompanyId(cid);
-      load(cid, u, admin);
-    });
-  }, [load]);
+      load(cid, user, isAdmin);
+    })();
+  }, [user, isAdmin, load]);
 
   // Para feature/incidencia abrimos primero la entrevista del asistente; el resto
   // de tipos se crea directo (comportamiento previo intacto).
@@ -126,14 +126,20 @@ export default function SupportCenter() {
       setTicketType("other");
       setIntakeOpen(false);
       load(companyId, user, isAdmin);
+    } catch (error) {
+      toast({ title: "No se pudo enviar el ticket", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   const handleStatusChange = async (id, status) => {
-    await base44.entities.SupportTicket.update(id, { status });
-    load(companyId, user, isAdmin);
+    try {
+      await base44.functions.invoke("updateSupportTicket", { ticketId: id, status });
+      load(companyId, user, isAdmin);
+    } catch (error) {
+      toast({ title: "No se pudo cambiar el estado", description: error.message, variant: "destructive" });
+    }
   };
 
   const visible = useMemo(() => {

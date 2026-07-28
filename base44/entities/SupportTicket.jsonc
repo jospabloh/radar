@@ -6,6 +6,14 @@
   // just closes the gap for a direct SDK call spoofing another employee (or
   // impersonating support staff by writing an owner-looking identity) within
   // the caller's own tenant.
+  //
+  // SECURITY (2): `update` is now service-role only. SupportCenter.jsx only
+  // *displays* the status dropdown to company_admin (an app-level `isAdmin`
+  // check), but the RLS itself had no matching role check — a store_manager
+  // or employee calling SupportTicket.update(id, {status}) directly would
+  // have succeeded. Status changes now go through the service-role function
+  // `updateSupportTicket`, which enforces the same company_admin check
+  // server-side.
   "name": "SupportTicket",
   "type": "object",
   "description": "Ticket de soporte que una empresa (tenant) abre a la plataforma ACACIA. Los mensajes del hilo viven en SupportTicketMessage.",
@@ -53,10 +61,7 @@
       ]
     },
     "update": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
       "user_condition": { "role": "admin" }

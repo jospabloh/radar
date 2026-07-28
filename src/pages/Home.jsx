@@ -1,24 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import React from "react";
+import { useAuth } from "@/lib/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const [target, setTarget] = useState(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    base44.auth.me().then((user) => {
-      if (!user.app_role) {
-        setTarget("/onboarding");
-      } else if (user.app_role === "super_admin") {
-        setTarget("/companies");
-      } else if (user.app_role === "employee") {
-        setTarget("/portal");
-      } else {
-        setTarget("/dashboard");
-      }
-    });
-  }, []);
+  const target = !user
+    ? null
+    : !user.app_role
+    ? "/onboarding"
+    : user.app_role === "super_admin"
+    ? "/companies"
+    : user.app_role === "employee"
+    ? "/portal"
+    : "/dashboard";
 
   if (!target) {
     return (

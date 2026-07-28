@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function Reports() {
-  const [companyId, setCompanyId] = useState(null);
+  const { user } = useAuth();
+  const companyId = user?.company_id ?? null;
   const [employees, setEmployees] = useState([]);
   const [records, setRecords] = useState([]);
   const [ptos, setPtos] = useState([]);
@@ -21,11 +23,8 @@ export default function Reports() {
   }, []);
 
   useEffect(() => {
-    base44.auth.me().then((u) => {
-      setCompanyId(u.company_id);
-      load(u.company_id);
-    });
-  }, [load]);
+    if (companyId) load(companyId);
+  }, [companyId, load]);
 
   const inRange = records.filter((r) => r.date >= startDate && r.date <= endDate);
 
@@ -66,7 +65,7 @@ export default function Reports() {
                 <td className="px-5 py-3 text-right">{r.daysPresent}</td>
                 <td className="px-5 py-3 text-right text-warning">{r.late}</td>
                 <td className="px-5 py-3 text-right text-destructive">{r.absent}</td>
-                <td className="px-5 py-3 text-right text-purple-600">{r.ptoCount}</td>
+                <td className="px-5 py-3 text-right text-accent-foreground">{r.ptoCount}</td>
               </tr>
             ))}
           </tbody>

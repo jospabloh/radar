@@ -70,24 +70,24 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Home />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/portal" element={<EmployeePortal />} />
-        <Route path="/configuracion-empresa" element={<CompanySettings />} />
-        <Route path="/soporte" element={<SupportCenter />} />
-        <Route path="/gestion-licencias" element={<LicenseManagement />} />
-        <Route path="/manual-usuario" element={<UserManual />} />
-        <Route path="/historial-cambios" element={<ChangeLog />} />
         <Route path="/perfil-empleado" element={<EmployeeProfile />} />
-        <Route path="/calendario-asistencias" element={<AttendanceCalendar />} />
-        <Route path="/configuracion-notificaciones" element={<NotificationSettings />} />
         <Route path="/mis-solicitudes" element={<MyRequests />} />
-        <Route path="/analitica-productividad" element={<ProductivityAnalytics />} />
-        <Route path="/configuracion-horarios" element={<ShiftSettings />} />
-        <Route path="/panel-incidencias" element={<IncidentPanel />} />
         <Route element={<AppLayout />}>
           <Route path="/companies" element={<SuperAdminCompanies />} />
           <Route path="/dashboard" element={<CompanyDashboard />} />
           <Route path="/employees" element={<Employees />} />
           <Route path="/approvals" element={<Approvals />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/configuracion-empresa" element={<CompanySettings />} />
+          <Route path="/soporte" element={<SupportCenter />} />
+          <Route path="/gestion-licencias" element={<LicenseManagement />} />
+          <Route path="/manual-usuario" element={<UserManual />} />
+          <Route path="/historial-cambios" element={<ChangeLog />} />
+          <Route path="/calendario-asistencias" element={<AttendanceCalendar />} />
+          <Route path="/configuracion-notificaciones" element={<NotificationSettings />} />
+          <Route path="/analitica-productividad" element={<ProductivityAnalytics />} />
+          <Route path="/configuracion-horarios" element={<ShiftSettings />} />
+          <Route path="/panel-incidencias" element={<IncidentPanel />} />
         </Route>
       </Route>
       {/* Add your page Route elements here */}

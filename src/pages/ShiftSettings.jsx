@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "@/components/ui/use-toast";
 import { WEEKDAYS } from "@/lib/schedule";
 import { Trash2 } from "lucide-react";
 
 export default function ShiftSettings() {
-  const [companyId, setCompanyId] = useState(null);
+  const { user } = useAuth();
+  const companyId = user?.company_id ?? null;
   const [templates, setTemplates] = useState([]);
   const [form, setForm] = useState({ name: "", start: "09:00", end: "18:00", days_of_week: [] });
 
@@ -18,11 +21,8 @@ export default function ShiftSettings() {
   }, []);
 
   useEffect(() => {
-    base44.auth.me().then((u) => {
-      setCompanyId(u.company_id);
-      load(u.company_id);
-    });
-  }, [load]);
+    if (companyId) load(companyId);
+  }, [companyId, load]);
 
   const toggleDay = (key) => {
     setForm((f) => ({
@@ -33,22 +33,30 @@ export default function ShiftSettings() {
 
   const handleCreate = async () => {
     if (!form.name) return;
-    await base44.functions.invoke("createManagedRecord", {
-      entity: "ShiftTemplate",
-      action: "create",
-      data: form,
-    });
-    setForm({ name: "", start: "09:00", end: "18:00", days_of_week: [] });
-    load(companyId);
+    try {
+      await base44.functions.invoke("createManagedRecord", {
+        entity: "ShiftTemplate",
+        action: "create",
+        data: form,
+      });
+      setForm({ name: "", start: "09:00", end: "18:00", days_of_week: [] });
+      load(companyId);
+    } catch (error) {
+      toast({ title: "No se pudo crear el turno", description: error.message, variant: "destructive" });
+    }
   };
 
   const handleDelete = async (id) => {
-    await base44.functions.invoke("createManagedRecord", {
-      entity: "ShiftTemplate",
-      action: "delete",
-      recordId: id,
-    });
-    load(companyId);
+    try {
+      await base44.functions.invoke("createManagedRecord", {
+        entity: "ShiftTemplate",
+        action: "delete",
+        recordId: id,
+      });
+      load(companyId);
+    } catch (error) {
+      toast({ title: "No se pudo eliminar el turno", description: error.message, variant: "destructive" });
+    }
   };
 
   return (

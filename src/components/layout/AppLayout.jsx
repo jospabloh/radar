@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Radar, LogOut, Menu } from "lucide-react";
 import {
   Building2, LayoutDashboard, Users, CheckSquare, FileBarChart,
@@ -114,24 +115,35 @@ function UserFooter({ user }) {
 }
 
 export default function AppLayout() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [companyName, setCompanyName] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
-    base44.auth.me().then(async (u) => {
-      setUser(u);
-      const employees = await base44.entities.Employee.filter({ user_id: u.id });
-      const employee = employees[0];
-      if (employee?.company_id) {
-        const company = await base44.entities.Company.get(employee.company_id);
-        setCompanyName(company?.name || null);
-      }
-    });
-  }, []);
+    if (user?.company_id) {
+      base44.entities.Company.get(user.company_id).then((company) => setCompanyName(company?.name || null));
+    }
+  }, [user]);
 
   const items = user ? NAV_BY_ROLE[user.app_role] || [] : [];
+
+  // Some routes under this layout (calendario-asistencias,
+  // configuracion-notificaciones, manual-usuario, soporte,
+  // historial-cambios) are also linked from EmployeePortal.jsx for the
+  // plain "employee" role, which has no NAV_BY_ROLE entry — that role
+  // should keep the standalone, PageHeader-with-back-to-portal experience
+  // it always had, not gain an empty admin sidebar with no way back.
+  // Admin/manager roles (which DO have a NAV_BY_ROLE entry) always get the
+  // sidebar, on every one of their nav destinations — that's the fix for
+  // the sidebar disappearing when they clicked most of their own nav links.
+  if (user && !NAV_BY_ROLE[user.app_role]) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Outlet />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-background">

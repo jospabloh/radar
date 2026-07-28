@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Clock } from "lucide-react";
@@ -9,7 +10,7 @@ import ScheduleChangeDialog from "@/components/employees/ScheduleChangeDialog";
 const ROLE_LABEL = { employee: "Empleado", store_manager: "Store Manager", company_admin: "Admin" };
 
 export default function Employees() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [scheduleTarget, setScheduleTarget] = useState(null);
@@ -20,11 +21,8 @@ export default function Employees() {
   };
 
   useEffect(() => {
-    base44.auth.me().then((u) => {
-      setUser(u);
-      load(u.company_id);
-    });
-  }, []);
+    if (user) load(user.company_id);
+  }, [user]);
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -57,7 +55,6 @@ export default function Employees() {
         <EmployeeFormDialog
           open={showCreate}
           onOpenChange={setShowCreate}
-          companyId={user.company_id}
           onCreated={() => load(user.company_id)}
         />
       )}

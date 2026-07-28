@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ScheduleEditor from "@/components/schedule/ScheduleEditor";
+import { toast } from "@/components/ui/use-toast";
 import { defaultSchedule } from "@/lib/schedule";
 
-export default function EmployeeFormDialog({ open, onOpenChange, companyId, onCreated }) {
+export default function EmployeeFormDialog({ open, onOpenChange, onCreated }) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("employee");
@@ -17,22 +18,24 @@ export default function EmployeeFormDialog({ open, onOpenChange, companyId, onCr
 
   const handleSubmit = async () => {
     setSaving(true);
-    await base44.users.inviteUser(email, "user");
-    await base44.entities.Employee.create({
-      email,
-      full_name: fullName,
-      role,
-      schedule,
-      company_id: companyId,
-      hire_date: new Date().toISOString().split("T")[0],
-    });
-    setSaving(false);
-    setEmail("");
-    setFullName("");
-    setRole("employee");
-    setSchedule(defaultSchedule());
-    onOpenChange(false);
-    onCreated();
+    try {
+      await base44.functions.invoke("createEmployee", {
+        email,
+        full_name: fullName,
+        role,
+        schedule,
+      });
+      setEmail("");
+      setFullName("");
+      setRole("employee");
+      setSchedule(defaultSchedule());
+      onOpenChange(false);
+      onCreated();
+    } catch (error) {
+      toast({ title: "No se pudo crear el empleado", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

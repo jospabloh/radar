@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { toast } from "@/components/ui/use-toast";
 import { Check, X } from "lucide-react";
 
 function Row({ title, subtitle, onApprove, onReject }) {
@@ -22,8 +24,9 @@ function Row({ title, subtitle, onApprove, onReject }) {
 const MANAGER_ROLES = new Set(["company_admin", "store_manager", "super_admin"]);
 
 export default function Approvals() {
-  const [companyId, setCompanyId] = useState(null);
-  const [isManager, setIsManager] = useState(null);
+  const { user } = useAuth();
+  const companyId = user?.company_id ?? null;
+  const isManager = user ? MANAGER_ROLES.has(user.app_role) : null;
   const [ptos, setPtos] = useState([]);
   const [scheduleReqs, setScheduleReqs] = useState([]);
   const [extensions, setExtensions] = useState([]);
@@ -35,20 +38,20 @@ export default function Approvals() {
   }, []);
 
   useEffect(() => {
-    base44.auth.me().then((u) => {
-      setCompanyId(u.company_id);
-      setIsManager(MANAGER_ROLES.has(u.app_role));
-      if (MANAGER_ROLES.has(u.app_role)) load(u.company_id);
-    });
-  }, [load]);
+    if (isManager) load(companyId);
+  }, [isManager, companyId, load]);
 
   // Actual authorization is enforced server-side by resolveApprovalRequest
   // (it checks the caller's app_role before writing); this gate just keeps a
   // non-manager from seeing pending requests or a confusing "approve" button
   // that would be rejected by the backend.
   const resolve = async (entity, requestId, status) => {
-    await base44.functions.invoke("resolveApprovalRequest", { entity, requestId, status });
-    load(companyId);
+    try {
+      await base44.functions.invoke("resolveApprovalRequest", { entity, requestId, status });
+      load(companyId);
+    } catch (error) {
+      toast({ title: "No se pudo procesar la solicitud", description: error.message, variant: "destructive" });
+    }
   };
   const resolvePto = (id, status) => resolve("PTORequest", id, status);
   const resolveSchedule = (req, status) => resolve("ScheduleChangeRequest", req.id, status);

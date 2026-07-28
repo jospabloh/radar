@@ -5,11 +5,17 @@
   // "company_admin"}). No client code in src/ calls entities.Employee.update
   // at all (the one caller, Approvals.jsx's schedule-approval reconciliation,
   // was moved into the service-role function resolveApprovalRequest), so
-  // this closes the gap without touching Employee.create (which still needs
-  // to stay open for the employee-invite flow in EmployeeFormDialog.jsx —
-  // locking `role` there would require rebuilding base44.users.inviteUser
-  // behind a service-role function, which this sandbox has no live backend
-  // to test against; left as a follow-up).
+  // this closes the gap without touching Employee.create.
+  //
+  // SECURITY (2): `create` is now also service-role only — it had the same
+  // gap at creation time (any company member could call Employee.create
+  // directly with role: "company_admin"). Both legitimate creators
+  // (EmployeeFormDialog.jsx for company_admin/store_manager,
+  // SuperAdminCompanies.jsx for super_admin) now go through the
+  // service-role function `createEmployee`, which validates the caller's
+  // app_role, restricts which role they may grant, and pins company_id to
+  // the caller's own tenant (or the requested tenant, for the super_admin
+  // cross-company invite path) before writing via asServiceRole.
   "name": "Employee",
   "type": "object",
   "properties": {
@@ -163,10 +169,7 @@
       ]
     },
     "create": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "update": {
       "user_condition": { "role": "admin" }

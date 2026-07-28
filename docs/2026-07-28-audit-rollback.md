@@ -86,16 +86,62 @@ Restore `create`'s `$or` to a plain `data.company_id` branch (drop the
 Restore `create`/`update` to the company-wide-plus-admin `$or` rule. No
 client file changed (nothing writes `Holiday` either way).
 
+## 12. Employee create lock + createEmployee
+
+Three parts, revert together:
+- Restore `Employee.jsonc`'s `create` rule to the company-wide-plus-admin
+  `$or` it had before (same shape as the old `update` rule).
+- Revert `src/components/employees/EmployeeFormDialog.jsx`'s `handleSubmit`
+  to call `base44.users.inviteUser` then `base44.entities.Employee.create`
+  directly (both must come back — the function currently does both).
+- Revert `src/pages/SuperAdminCompanies.jsx`'s `inviteAdmin` the same way,
+  restoring `role: "company_admin"` and `company_id: showInvite.id` as
+  direct create-payload fields.
+- Delete `base44/functions/createEmployee/` (optional — inert if unused).
+
+## 13. SupportTicket update lock + updateSupportTicket
+
+Two parts, revert together:
+- Restore `SupportTicket.jsonc`'s `update` rule to the company-wide-plus-admin
+  `$or` it had before.
+- Revert `src/pages/SupportCenter.jsx`'s `handleStatusChange` to call
+  `base44.entities.SupportTicket.update(id, {status})` directly.
+- Delete `base44/functions/updateSupportTicket/` (optional).
+
+## 14. Sidebar nav / AppLayout changes
+
+Pure UI, no RLS involved, safe to revert independently:
+- In `src/App.jsx`, move the 10 routes back out of the `<Route
+  element={<AppLayout />}>` group to standalone `<Route>` entries (see git
+  history for the pre-fix list).
+- In `src/components/layout/AppLayout.jsx`, remove the `if (user &&
+  !NAV_BY_ROLE[user.app_role])` bare-`<Outlet/>` branch.
+
+## 15. auth.me() → useAuth() dedup, error-handling additions, color/map consolidation
+
+These are independent, low-risk, additive changes (no RLS involved) spread
+across ~20 files — revert per-file via git if any one causes an issue; there
+is no cross-file dependency between them. `src/lib/schedule.js`'s
+`ATTENDANCE_STATUS_STYLE`/`ATTENDANCE_STATUS_LABEL` exports are additive
+(nothing removed), so reverting `CompanyDashboard.jsx`/`IncidentPanel.jsx`
+to their own inline copies doesn't require touching `schedule.js`.
+
 ## Deploy note (applies to all of the above)
 
 Per `AGENTS.md`/this repo's Base44 workflow: committing these `.jsonc`/
 function changes to the repo does **not** change anything at runtime —
 someone with Base44 CLI/dashboard access still needs to run the publish
 step (`base44 dashboard open` or the CLI publish flow) for the RLS changes
-and the new `resolveApprovalRequest`/`createManagedRecord` functions to
-take effect against the live backend. This session had no authenticated
-Base44 CLI/MCP session available, so that deploy step could not be
-performed here. Deploy the two functions **before** the schema changes
-that lock the fields they replace (same reasoning as this repo's existing
+and the new backend functions (`resolveApprovalRequest`,
+`createManagedRecord`, `createEmployee`, `updateSupportTicket`) to take
+effect against the live backend. This session had no authenticated Base44
+CLI/MCP session available, so that deploy step could not be performed
+here. **Deploy every new/changed function before the schema changes that
+lock the fields they replace** (same reasoning as this repo's existing
 `completeOnboarding` deploy-order note) — otherwise the affected writes
-silently no-op for a window between the two deploys.
+silently no-op for a window between the two deploys. Suggested order:
+1. Deploy all five functions (`updateAttendanceRecord` already live;
+   `resolveApprovalRequest`, `createManagedRecord`, `createEmployee`,
+   `updateSupportTicket` are new).
+2. Deploy the schema (`base44/entities/*.jsonc`).
+3. Publish the frontend (the client code already calls the new functions).

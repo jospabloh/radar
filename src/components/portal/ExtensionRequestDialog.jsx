@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast";
 
 export default function ExtensionRequestDialog({ open, onOpenChange, employee, record }) {
   const [reason, setReason] = useState("");
@@ -11,23 +12,28 @@ export default function ExtensionRequestDialog({ open, onOpenChange, employee, r
 
   const submit = async () => {
     setSaving(true);
-    await base44.entities.ExtensionRequest.create({
-      employee_id: employee.id,
-      company_id: employee.company_id,
-      employee_name: employee.full_name,
-      attendance_record_id: record.id,
-      date: record.date,
-      requested_minutes: 30,
-      reason,
-      status: "pending",
-    });
-    setSaving(false);
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
-      onOpenChange(false);
-      setReason("");
-    }, 1200);
+    try {
+      await base44.entities.ExtensionRequest.create({
+        employee_id: employee.id,
+        company_id: employee.company_id,
+        employee_name: employee.full_name,
+        attendance_record_id: record.id,
+        date: record.date,
+        requested_minutes: 30,
+        reason,
+        status: "pending",
+      });
+      setSent(true);
+      setTimeout(() => {
+        setSent(false);
+        onOpenChange(false);
+        setReason("");
+      }, 1200);
+    } catch (error) {
+      toast({ title: "No se pudo enviar la solicitud", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
