@@ -1,4 +1,16 @@
 {
+  // SECURITY: tier/max_employees/license_expiry/status carry FIELD-LEVEL
+  // write RLS locking them to role `admin` (service role). Company's
+  // top-level `update` rule only checks tenant ownership (id ==
+  // {{user.data.company_id}}), so without this lock any employee could
+  // call Company.update on their own company with {tier:"enterprise",
+  // status:"active", ...} and grant themselves a paid tier or lift a
+  // suspension directly, bypassing the SupportTicket-based upgrade request
+  // flow in LicenseManagement.jsx (the only legitimate writer of these
+  // fields is a human via the Base44 dashboard / a future service-role
+  // billing function). CompanySettings.jsx (the only other Company.update
+  // caller) only ever writes name/timezone/whatsapp_enabled, so this lock
+  // does not affect it.
   "name": "Company",
   "type": "object",
   "properties": {
@@ -24,15 +36,18 @@
         "pro",
         "enterprise"
       ],
-      "default": "starter"
+      "default": "starter",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "max_employees": {
       "type": "number",
-      "default": 15
+      "default": 15,
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "license_expiry": {
       "type": "string",
-      "format": "date"
+      "format": "date",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "status": {
       "type": "string",
@@ -40,7 +55,8 @@
         "active",
         "suspended"
       ],
-      "default": "active"
+      "default": "active",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "required": [

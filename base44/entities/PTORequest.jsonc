@@ -1,4 +1,15 @@
 {
+  // SECURITY: `status`/`manager_comment` carry FIELD-LEVEL write RLS locking
+  // them to role `admin` (service role). The top-level `update` rule only
+  // checks tenant ownership (data.company_id), with no manager/admin
+  // app_role check, so without this lock any employee could approve their
+  // own (or a coworker's) PTO request by calling PTORequest.update directly.
+  // Manager approve/reject now goes through the service-role function
+  // `resolveApprovalRequest`, which verifies the caller's app_role before
+  // writing via asServiceRole (role:admin branch below) — same pattern as
+  // AttendanceRecord's `updateAttendanceRecord`. Approvals.jsx was the only
+  // client-side writer of `status`/`manager_comment`; other fields (type,
+  // dates, reason) remain self-service editable by the requester.
   "name": "PTORequest",
   "type": "object",
   "properties": {
@@ -40,10 +51,12 @@
         "approved",
         "rejected"
       ],
-      "default": "pending"
+      "default": "pending",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "manager_comment": {
-      "type": "string"
+      "type": "string",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "required": [

@@ -1,4 +1,12 @@
 {
+  // SECURITY: `status` carries FIELD-LEVEL write RLS locking it to role
+  // `admin` (service role) — same reasoning as PTORequest.jsonc. Note the
+  // underlying AttendanceRecord write on approval was already manager-gated
+  // via `updateAttendanceRecord`, but the ExtensionRequest's own status flip
+  // was not — an employee could mark their own extension "approved" without
+  // ever touching the attendance record itself, which is misleading even
+  // though it granted no extra hours. Approve/reject now goes through the
+  // service-role function `resolveApprovalRequest`.
   "name": "ExtensionRequest",
   "type": "object",
   "properties": {
@@ -32,7 +40,8 @@
         "approved",
         "rejected"
       ],
-      "default": "pending"
+      "default": "pending",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
   },
   "required": [

@@ -1,4 +1,13 @@
 {
+  // SECURITY: create/update dropped the "any company member" branch
+  // (data.company_id match) — it let a coworker silently disable another
+  // user's notification prefs (e.g. suppress their approval/incident
+  // alerts), a write-side IDOR against another user's own settings.
+  // NotificationSettings.jsx is the only caller and always scopes writes to
+  // the caller's own user_id ({{user.id}}), so owner-or-admin is sufficient
+  // there. `read` keeps the company-wide branch (required by
+  // scripts/validate-entity-rls.mjs for any tenant-scoped entity, and lower
+  // risk — reading a coworker's on/off toggle isn't sensitive).
   "name": "NotificationPreference",
   "type": "object",
   "properties": {
@@ -31,14 +40,12 @@
     "create": {
       "$or": [
         { "data.user_id": "{{user.id}}" },
-        { "data.company_id": "{{user.data.company_id}}" },
         { "user_condition": { "role": "admin" } }
       ]
     },
     "update": {
       "$or": [
         { "data.user_id": "{{user.id}}" },
-        { "data.company_id": "{{user.data.company_id}}" },
         { "user_condition": { "role": "admin" } }
       ]
     },
