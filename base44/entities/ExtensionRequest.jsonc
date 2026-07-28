@@ -7,6 +7,12 @@
   // ever touching the attendance record itself, which is misleading even
   // though it granted no extra hours. Approve/reject now goes through the
   // service-role function `resolveApprovalRequest`.
+  //
+  // SECURITY (2): `create` is now scoped to the caller's OWN employee_id
+  // (same reasoning/pattern as PTORequest.jsonc — prevents filing an
+  // extension request under a coworker's identity), and `update`'s
+  // company-wide branch was removed entirely (no client code calls
+  // entities.ExtensionRequest.update anymore).
   "name": "ExtensionRequest",
   "type": "object",
   "properties": {
@@ -58,15 +64,17 @@
     },
     "create": {
       "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
+        {
+          "$and": [
+            { "data.company_id": "{{user.data.company_id}}" },
+            { "data.employee_id": "{{user.data.employee_id}}" }
+          ]
+        },
         { "user_condition": { "role": "admin" } }
       ]
     },
     "update": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
       "user_condition": { "role": "admin" }

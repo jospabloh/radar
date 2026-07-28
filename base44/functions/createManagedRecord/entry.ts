@@ -1,0 +1,69 @@
+// createManagedRecord — manager-only create (and, for ShiftTemplate,
+// delete) for entities whose write RLS is now service-role only because
+// the caller who legitimately writes them isn't the record's own subject:
+//
+//   - ScheduleChangeRequest: a manager proposes a schedule change FOR
+//     another employee (ScheduleChangeDialog.jsx, only reachable from the
+//     admin/manager Employees.jsx page) — scoping create to "own
+//     employee_id" (like PTORequest/ExtensionRequest) would break this.
+//   - ShiftTemplate: company-wide shift templates, meant to be
+//     manager-managed, not self-service. Its `delete` rule was already
+//     service-role only before this change (a pre-existing bug: the delete
+//     button in ShiftSettings.jsx could never have worked for a real user),
+//     so `delete` is included here too, fixing that alongside the new
+//     `create` gate.
+//
+// Neither case can be expressed as a declarative RLS rule (no app_role
+// membership check exists in Base44's rule language), so both go through
+// this function instead, verifying the caller's app_role and tenant before
+// writing via asServiceRole (which bypasses RLS — the checks below are the
+// only gate).
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
+
+const ENTITIES = new Set(['ScheduleChangeRequest', 'ShiftTemplate']);
+const DELETABLE_ENTITIES = new Set(['ShiftTemplate']);
+const MANAGER_ROLES = new Set(['company_admin', 'store_manager', 'super_admin']);
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!MANAGER_ROLES.has(user.app_role)) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { entity, action, data, recordId } = await req.json();
+    if (!ENTITIES.has(entity)) {
+      return Response.json({ error: 'entity must be one of ScheduleChangeRequest, ShiftTemplate' }, { status: 400 });
+    }
+
+    const sr = base44.asServiceRole;
+
+    if (action === 'delete') {
+      if (!DELETABLE_ENTITIES.has(entity)) {
+        return Response.json({ error: `${entity} does not support delete via this function` }, { status: 400 });
+      }
+      if (!recordId) return Response.json({ error: 'recordId is required' }, { status: 400 });
+      const records = await sr.entities[entity].filter({ id: recordId });
+      const record = records[0];
+      if (!record) return Response.json({ error: 'not_found' }, { status: 404 });
+      if (user.app_role !== 'super_admin' && record.company_id !== user.company_id) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      await sr.entities[entity].delete(recordId);
+      return Response.json({ success: true });
+    }
+
+    if (!data || typeof data !== 'object') {
+      return Response.json({ error: 'data is required' }, { status: 400 });
+    }
+    // company_id always comes from the caller's own tenant, never the client
+    // payload — a manager can only create records for their own company.
+    const payload = { ...data, company_id: user.company_id };
+    const created = await sr.entities[entity].create(payload);
+    return Response.json({ success: true, record: created });
+  } catch (error) {
+    return Response.json({ error: (error as Error).message }, { status: 500 });
+  }
+});

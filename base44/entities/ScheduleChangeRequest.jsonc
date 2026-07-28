@@ -6,6 +6,17 @@
   // approve/reject now goes through the service-role function
   // `resolveApprovalRequest`, which also reconciles Employee.schedule on
   // approval (moved out of Approvals.jsx's direct client write).
+  //
+  // SECURITY (2): `create` and `update` are now service-role only. Unlike
+  // PTORequest/ExtensionRequest, this entity is manager-initiated (a manager
+  // proposes a schedule change FOR another employee via Employees.jsx —
+  // ScheduleChangeDialog.jsx is only reachable from that admin/manager
+  // page), so scoping create to "own employee_id" would break the
+  // legitimate flow. There's no declarative RLS way to require "caller is a
+  // manager", so creation now goes through the service-role function
+  // `createManagedRecord`, which checks app_role the same way
+  // `resolveApprovalRequest` does. `update` has no client caller left at
+  // all (approval also moved to resolveApprovalRequest above).
   "name": "ScheduleChangeRequest",
   "type": "object",
   "properties": {
@@ -48,16 +59,10 @@
       ]
     },
     "create": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "update": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
       "user_condition": { "role": "admin" }

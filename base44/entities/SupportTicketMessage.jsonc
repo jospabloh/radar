@@ -1,4 +1,9 @@
 {
+  // SECURITY: `create` now also requires data.author_id == {{user.id}}.
+  // Nothing in src/ creates SupportTicketMessage rows yet (the messaging
+  // thread UI doesn't exist — see the RADAR audit's critical-flow findings),
+  // so this closes the author-spoofing gap before that UI is built rather
+  // than after.
   "name": "SupportTicketMessage",
   "type": "object",
   "description": "Un mensaje dentro del hilo de un SupportTicket. Las notas internas (is_internal_note=true) solo las ve el soporte (owner) — vía RLS y UI.",
@@ -17,7 +22,13 @@
   "rls": {
     "create": {
       "$or": [
-        { "$and": [ { "data.company_id": "{{user.data.company_id}}" }, { "data.is_internal_note": false } ] },
+        {
+          "$and": [
+            { "data.company_id": "{{user.data.company_id}}" },
+            { "data.is_internal_note": false },
+            { "data.author_id": "{{user.id}}" }
+          ]
+        },
         { "user_condition": { "role": "admin" } }
       ]
     },

@@ -19,13 +19,16 @@ export default function ScheduleChangeDialog({ open, onOpenChange, employee, onC
 
   const handleSubmit = async () => {
     setSaving(true);
-    await base44.entities.ScheduleChangeRequest.create({
-      employee_id: employee.id,
-      company_id: employee.company_id,
-      employee_name: employee.full_name,
-      proposed_schedule: schedule,
-      reason,
-      status: "pending",
+    await base44.functions.invoke("createManagedRecord", {
+      entity: "ScheduleChangeRequest",
+      action: "create",
+      data: {
+        employee_id: employee.id,
+        employee_name: employee.full_name,
+        proposed_schedule: schedule,
+        reason,
+        status: "pending",
+      },
     });
     setSaving(false);
     setReason("");

@@ -1,4 +1,11 @@
 {
+  // SECURITY: `create` now also requires data.created_by_id == {{user.id}}.
+  // Previously any tenant member could set created_by_id/created_by_email to
+  // an arbitrary value — both current client callers (LicenseManagement.jsx,
+  // SupportCenter.jsx) already always set it to the caller's own id, so this
+  // just closes the gap for a direct SDK call spoofing another employee (or
+  // impersonating support staff by writing an owner-looking identity) within
+  // the caller's own tenant.
   "name": "SupportTicket",
   "type": "object",
   "description": "Ticket de soporte que una empresa (tenant) abre a la plataforma ACACIA. Los mensajes del hilo viven en SupportTicketMessage.",
@@ -30,7 +37,12 @@
   "rls": {
     "create": {
       "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
+        {
+          "$and": [
+            { "data.company_id": "{{user.data.company_id}}" },
+            { "data.created_by_id": "{{user.id}}" }
+          ]
+        },
         { "user_condition": { "role": "admin" } }
       ]
     },

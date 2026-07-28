@@ -1,4 +1,15 @@
 {
+  // SECURITY: `update`'s company-wide branch was removed — it had no
+  // manager/admin app_role check, so any employee could promote themselves
+  // or a coworker to company_admin via Employee.update(id, {role:
+  // "company_admin"}). No client code in src/ calls entities.Employee.update
+  // at all (the one caller, Approvals.jsx's schedule-approval reconciliation,
+  // was moved into the service-role function resolveApprovalRequest), so
+  // this closes the gap without touching Employee.create (which still needs
+  // to stay open for the employee-invite flow in EmployeeFormDialog.jsx —
+  // locking `role` there would require rebuilding base44.users.inviteUser
+  // behind a service-role function, which this sandbox has no live backend
+  // to test against; left as a follow-up).
   "name": "Employee",
   "type": "object",
   "properties": {
@@ -158,10 +169,7 @@
       ]
     },
     "update": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
       "user_condition": { "role": "admin" }
