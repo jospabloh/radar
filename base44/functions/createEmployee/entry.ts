@@ -1,0 +1,79 @@
+// createEmployee — the only sanctioned way to invite a user and create their
+// Employee row, now that Employee.jsonc's `create` rule is service-role
+// only. Two callers, two different privilege shapes:
+//
+//   - EmployeeFormDialog.jsx (Employees.jsx, company_admin/store_manager):
+//     invites an employee/store_manager into the CALLER'S OWN company. Role
+//     is restricted to employee|store_manager — this path can't grant
+//     company_admin, matching what the dialog's dropdown already offered.
+//   - SuperAdminCompanies.jsx (super_admin only): invites a company_admin
+//     into an ARBITRARY company (super_admin is a cross-tenant platform
+//     role) — company_id comes from the request, not the caller's own.
+//
+// Why this exists: Employee.create previously had no role check at all —
+// any authenticated company member could call it directly and set `role`
+// to company_admin on a brand-new row. That's a narrower version of the
+// self-escalation bug already fixed on Employee.update (see Employee.jsonc);
+// this closes the matching create-time gap. base44.users.inviteUser is
+// called with the CALLER'S OWN client (not asServiceRole) because it
+// already worked that way when invoked directly from the browser with a
+// non-admin end-user token — this function only adds the role/tenant
+// validation the client-side call never had, it doesn't change what
+// privilege inviteUser itself requires.
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
+
+const MANAGER_ROLES = new Set(['company_admin', 'store_manager']);
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const isSuperAdmin = user.app_role === 'super_admin';
+    const isManager = MANAGER_ROLES.has(user.app_role);
+    if (!isSuperAdmin && !isManager) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { email, full_name, role, company_id, schedule, hire_date } = await req.json();
+    if (!email || !full_name) {
+      return Response.json({ error: 'email and full_name are required' }, { status: 400 });
+    }
+
+    let targetCompanyId;
+    let grantedRole;
+    if (isSuperAdmin) {
+      if (!company_id) {
+        return Response.json({ error: 'company_id is required for a super_admin invite' }, { status: 400 });
+      }
+      if (role !== 'company_admin') {
+        return Response.json({ error: 'role must be company_admin for a super_admin invite' }, { status: 400 });
+      }
+      targetCompanyId = company_id;
+      grantedRole = 'company_admin';
+    } else {
+      if (role !== 'employee' && role !== 'store_manager') {
+        return Response.json({ error: 'role must be employee or store_manager' }, { status: 400 });
+      }
+      targetCompanyId = user.company_id;
+      grantedRole = role;
+    }
+
+    await base44.users.inviteUser(email, 'user');
+
+    const sr = base44.asServiceRole;
+    const employee = await sr.entities.Employee.create({
+      email,
+      full_name,
+      role: grantedRole,
+      company_id: targetCompanyId,
+      hire_date: hire_date || new Date().toISOString().split('T')[0],
+      ...(schedule ? { schedule } : {}),
+    });
+
+    return Response.json({ success: true, employee });
+  } catch (error) {
+    return Response.json({ error: (error as Error).message }, { status: 500 });
+  }
+});

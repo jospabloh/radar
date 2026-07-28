@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ScheduleEditor from "@/components/schedule/ScheduleEditor";
+import { toast } from "@/components/ui/use-toast";
 import { defaultSchedule } from "@/lib/schedule";
 
 export default function ScheduleChangeDialog({ open, onOpenChange, employee, onCreated }) {
@@ -19,21 +20,26 @@ export default function ScheduleChangeDialog({ open, onOpenChange, employee, onC
 
   const handleSubmit = async () => {
     setSaving(true);
-    await base44.functions.invoke("createManagedRecord", {
-      entity: "ScheduleChangeRequest",
-      action: "create",
-      data: {
-        employee_id: employee.id,
-        employee_name: employee.full_name,
-        proposed_schedule: schedule,
-        reason,
-        status: "pending",
-      },
-    });
-    setSaving(false);
-    setReason("");
-    onOpenChange(false);
-    onCreated();
+    try {
+      await base44.functions.invoke("createManagedRecord", {
+        entity: "ScheduleChangeRequest",
+        action: "create",
+        data: {
+          employee_id: employee.id,
+          employee_name: employee.full_name,
+          proposed_schedule: schedule,
+          reason,
+          status: "pending",
+        },
+      });
+      setReason("");
+      onOpenChange(false);
+      onCreated();
+    } catch (error) {
+      toast({ title: "No se pudo enviar la solicitud", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

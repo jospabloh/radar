@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 
 export default function PTORequestDialog({ open, onOpenChange, employee }) {
   const [type, setType] = useState("vacaciones");
@@ -17,25 +18,30 @@ export default function PTORequestDialog({ open, onOpenChange, employee }) {
 
   const submit = async () => {
     setSaving(true);
-    await base44.entities.PTORequest.create({
-      employee_id: employee.id,
-      company_id: employee.company_id,
-      employee_name: employee.full_name,
-      type,
-      start_date: startDate,
-      end_date: endDate,
-      reason,
-      status: "pending",
-    });
-    setSaving(false);
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
-      onOpenChange(false);
-      setStartDate("");
-      setEndDate("");
-      setReason("");
-    }, 1200);
+    try {
+      await base44.entities.PTORequest.create({
+        employee_id: employee.id,
+        company_id: employee.company_id,
+        employee_name: employee.full_name,
+        type,
+        start_date: startDate,
+        end_date: endDate,
+        reason,
+        status: "pending",
+      });
+      setSent(true);
+      setTimeout(() => {
+        setSent(false);
+        onOpenChange(false);
+        setStartDate("");
+        setEndDate("");
+        setReason("");
+      }, 1200);
+    } catch (error) {
+      toast({ title: "No se pudo enviar la solicitud", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

@@ -1,25 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Users, CheckCircle2, Clock, XCircle, PlaneTakeoff, Hourglass } from "lucide-react";
-import { computeStatus } from "@/lib/schedule";
-
-const STATUS_STYLE = {
-  on_time: "bg-success/10 text-success",
-  late: "bg-warning/10 text-warning",
-  late_pending: "bg-warning/10 text-warning",
-  absent: "bg-destructive/10 text-destructive",
-  extension: "bg-primary/10 text-primary",
-  auto_logout: "bg-muted text-muted-foreground",
-  no_laboral: "bg-muted text-muted-foreground",
-  not_started: "bg-muted text-muted-foreground",
-};
-const STATUS_LABEL = {
-  on_time: "A tiempo", late: "Tarde", late_pending: "Tarde", absent: "Ausente",
-  extension: "Extensión", auto_logout: "Auto-logout", no_laboral: "No labora hoy", not_started: "Sin registrar",
-};
+import { computeStatus, ATTENDANCE_STATUS_STYLE, ATTENDANCE_STATUS_LABEL } from "@/lib/schedule";
 
 export default function CompanyDashboard() {
-  const [companyId, setCompanyId] = useState(null);
+  const { user } = useAuth();
+  const companyId = user?.company_id ?? null;
   const [employees, setEmployees] = useState([]);
   const [records, setRecords] = useState([]);
   const [ptoToday, setPtoToday] = useState(0);
@@ -38,11 +25,8 @@ export default function CompanyDashboard() {
   }, []);
 
   useEffect(() => {
-    base44.auth.me().then((u) => {
-      setCompanyId(u.company_id);
-      loadAll(u.company_id);
-    });
-  }, [loadAll]);
+    if (companyId) loadAll(companyId);
+  }, [companyId, loadAll]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -66,7 +50,7 @@ export default function CompanyDashboard() {
     { label: "Presentes ahora", value: presentes, icon: CheckCircle2, color: "text-success" },
     { label: "Tardanzas hoy", value: tardanzas, icon: Clock, color: "text-warning" },
     { label: "Ausentes", value: ausentes, icon: XCircle, color: "text-destructive" },
-    { label: "PTOs hoy", value: ptoToday, icon: PlaneTakeoff, color: "text-purple-600" },
+    { label: "PTOs hoy", value: ptoToday, icon: PlaneTakeoff, color: "text-accent-foreground" },
     { label: "Extensiones pendientes", value: extPending, icon: Hourglass, color: "text-primary" },
   ];
 
@@ -92,7 +76,7 @@ export default function CompanyDashboard() {
                 {record?.check_out_time ? ` · Salida ${record.check_out_time}` : ""}
               </p>
             </div>
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLE[status]}`}>{STATUS_LABEL[status]}</span>
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ATTENDANCE_STATUS_STYLE[status]}`}>{ATTENDANCE_STATUS_LABEL[status]}</span>
           </div>
         ))}
         {rows.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No hay empleados activos</p>}

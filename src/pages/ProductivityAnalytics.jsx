@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function ProductivityAnalytics() {
+  const { user } = useAuth();
   const [punctualityData, setPunctualityData] = useState([]);
   const [overtimeData, setOvertimeData] = useState([]);
 
   useEffect(() => {
-    base44.auth.me().then(async (u) => {
+    if (!user) return;
+    (async () => {
       const [records, employees] = await Promise.all([
-        base44.entities.AttendanceRecord.filter({ company_id: u.company_id }, "-date", 500),
-        base44.entities.Employee.filter({ company_id: u.company_id }),
+        base44.entities.AttendanceRecord.filter({ company_id: user.company_id }, "-date", 500),
+        base44.entities.Employee.filter({ company_id: user.company_id }),
       ]);
       const nameById = Object.fromEntries(employees.map((e) => [e.id, e.full_name]));
 
@@ -27,8 +30,8 @@ export default function ProductivityAnalytics() {
       const rows = Object.values(byEmployee);
       setPunctualityData(rows);
       setOvertimeData(rows);
-    });
-  }, []);
+    })();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background">

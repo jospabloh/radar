@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "@/components/ui/use-toast";
 import { CheckCircle2, BadgeDollarSign, Users, CalendarClock, Sparkles, Loader2 } from "lucide-react";
 
 const PLANS = [
@@ -34,38 +36,43 @@ const PLANS = [
 ];
 
 export default function LicenseManagement() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [company, setCompany] = useState(null);
   const [employeeCount, setEmployeeCount] = useState(0);
   const [requested, setRequested] = useState(false);
   const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
-    base44.auth.me().then(async (u) => {
-      setUser(u);
-      if (!u.company_id) return;
-      const c = await base44.entities.Company.get(u.company_id);
+    if (!user?.company_id) return;
+    (async () => {
+      const c = await base44.entities.Company.get(user.company_id);
       setCompany(c);
-      const emps = await base44.entities.Employee.filter({ company_id: u.company_id, status: "active" });
+      const emps = await base44.entities.Employee.filter({ company_id: user.company_id, status: "active" });
       setEmployeeCount(emps.length);
-    });
-  }, []);
+    })();
+  }, [user]);
 
   const handleUpgradeRequest = async () => {
-    const ticket = await base44.entities.SupportTicket.create({
-      company_id: company.id,
-      company_name: company.name,
-      created_by_id: user?.id,
-      created_by_email: user?.email,
-      category: "billing",
-      priority: "normal",
-      subject: "Solicitud de upgrade de plan",
-      description: `La empresa ${company.name} solicita información para escalar su plan actual (${company.tier}).`,
-    });
-    // Fire-and-forget: push the new ticket to ACACIA Mission Control in real time.
-    base44.functions.invoke("notifyTicketCreated", { ticketId: ticket.id }).catch(() => {});
-    setRequested(true);
-    setRequesting(false);
+    setRequesting(true);
+    try {
+      const ticket = await base44.entities.SupportTicket.create({
+        company_id: company.id,
+        company_name: company.name,
+        created_by_id: user?.id,
+        created_by_email: user?.email,
+        category: "billing",
+        priority: "normal",
+        subject: "Solicitud de upgrade de plan",
+        description: `La empresa ${company.name} solicita información para escalar su plan actual (${company.tier}).`,
+      });
+      // Fire-and-forget: push the new ticket to ACACIA Mission Control in real time.
+      base44.functions.invoke("notifyTicketCreated", { ticketId: ticket.id }).catch(() => {});
+      setRequested(true);
+    } catch (error) {
+      toast({ title: "No se pudo enviar la solicitud", description: error.message, variant: "destructive" });
+    } finally {
+      setRequesting(false);
+    }
   };
 
   if (!company) {

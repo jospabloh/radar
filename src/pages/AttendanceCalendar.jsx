@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,8 @@ import { es } from "date-fns/locale";
 const WEEKDAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 export default function AttendanceCalendar() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user ? ["company_admin", "store_manager"].includes(user.app_role) : false;
   const [employees, setEmployees] = useState([]);
   const [employeeId, setEmployeeId] = useState(null);
   const [employee, setEmployee] = useState(null);
@@ -20,21 +22,20 @@ export default function AttendanceCalendar() {
   const [holidays, setHolidays] = useState([]);
 
   useEffect(() => {
-    base44.auth.me().then(async (u) => {
-      const admin = ["company_admin", "store_manager"].includes(u.app_role);
-      setIsAdmin(admin);
-      if (admin) {
-        const emps = await base44.entities.Employee.filter({ company_id: u.company_id, status: "active" });
+    if (!user) return;
+    (async () => {
+      if (isAdmin) {
+        const emps = await base44.entities.Employee.filter({ company_id: user.company_id, status: "active" });
         setEmployees(emps);
         setEmployeeId(emps[0]?.id || null);
-        setCompanyId(u.company_id);
+        setCompanyId(user.company_id);
       } else {
-        const emps = await base44.entities.Employee.filter({ user_id: u.id });
+        const emps = await base44.entities.Employee.filter({ user_id: user.id });
         setEmployeeId(emps[0]?.id || null);
         setCompanyId(emps[0]?.company_id);
       }
-    });
-  }, []);
+    })();
+  }, [user, isAdmin]);
 
   const loadEmployeeData = useCallback(async (empId, cid) => {
     if (!empId) return;
@@ -60,7 +61,7 @@ export default function AttendanceCalendar() {
     const holiday = holidays.find((h) => h.date === dateStr);
     if (holiday) return { label: holiday.name, color: "bg-primary/10 text-primary" };
     const pto = ptos.find((p) => p.start_date <= dateStr && p.end_date >= dateStr);
-    if (pto) return { label: "Vacaciones/Permiso", color: "bg-purple-100 text-purple-700" };
+    if (pto) return { label: "Vacaciones/Permiso", color: "bg-accent text-accent-foreground" };
     const weekday = WEEKDAY_KEYS[getDay(date)];
     const works = employee?.schedule?.[weekday]?.works;
     return works ? { label: employee.schedule[weekday].start, color: "bg-success/10 text-success" } : { label: "Descanso", color: "bg-muted text-muted-foreground" };

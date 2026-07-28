@@ -1,26 +1,34 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/use-toast";
 
 export default function NotificationSettings() {
+  const { user } = useAuth();
   const [pref, setPref] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then(async (u) => {
-      const existing = await base44.entities.NotificationPreference.filter({ user_id: u.id });
+    if (!user) return;
+    (async () => {
+      const existing = await base44.entities.NotificationPreference.filter({ user_id: user.id });
       if (existing[0]) {
         setPref(existing[0]);
       } else {
-        const created = await base44.entities.NotificationPreference.create({ user_id: u.id, company_id: u.company_id });
+        const created = await base44.entities.NotificationPreference.create({ user_id: user.id, company_id: user.company_id });
         setPref(created);
       }
-    });
-  }, []);
+    })();
+  }, [user]);
 
   const handleToggle = async (field, value) => {
-    const updated = await base44.entities.NotificationPreference.update(pref.id, { [field]: value });
-    setPref(updated);
+    try {
+      const updated = await base44.entities.NotificationPreference.update(pref.id, { [field]: value });
+      setPref(updated);
+    } catch (error) {
+      toast({ title: "No se pudo guardar", description: error.message, variant: "destructive" });
+    }
   };
 
   if (!pref) {

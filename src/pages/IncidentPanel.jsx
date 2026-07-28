@@ -1,15 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-
-const STATUS_STYLE = { absent: "bg-destructive/10 text-destructive", late: "bg-warning/10 text-warning" };
-const STATUS_LABEL = { absent: "Ausente", late: "Tarde" };
+import { toast } from "@/components/ui/use-toast";
+import { ATTENDANCE_STATUS_STYLE, ATTENDANCE_STATUS_LABEL } from "@/lib/schedule";
 
 export default function IncidentPanel() {
+  const { user } = useAuth();
   const [incidents, setIncidents] = useState([]);
   const [notes, setNotes] = useState({});
+  const [savingId, setSavingId] = useState(null);
 
   const load = useCallback(async (cid) => {
     const [records, employees] = await Promise.all([
@@ -25,11 +27,18 @@ export default function IncidentPanel() {
   }, []);
 
   useEffect(() => {
-    base44.auth.me().then((u) => load(u.company_id));
-  }, [load]);
+    if (user?.company_id) load(user.company_id);
+  }, [user, load]);
 
   const handleSaveNote = async (id) => {
-    await base44.functions.invoke("updateAttendanceRecord", { recordId: id, updates: { notes: notes[id] } });
+    setSavingId(id);
+    try {
+      await base44.functions.invoke("updateAttendanceRecord", { recordId: id, updates: { notes: notes[id] } });
+    } catch (error) {
+      toast({ title: "No se pudo guardar la nota", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingId(null);
+    }
   };
 
   return (
@@ -43,7 +52,7 @@ export default function IncidentPanel() {
                 <p className="font-medium text-foreground">{r.employee_name}</p>
                 <p className="text-sm text-muted-foreground">{r.date}</p>
               </div>
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ATTENDANCE_STATUS_STYLE[r.status]}`}>{ATTENDANCE_STATUS_LABEL[r.status]}</span>
             </div>
             <Textarea
               placeholder="Agregar nota o acción tomada..."
@@ -52,7 +61,9 @@ export default function IncidentPanel() {
               rows={2}
               className="mb-2"
             />
-            <Button size="sm" variant="outline" onClick={() => handleSaveNote(r.id)}>Guardar nota</Button>
+            <Button size="sm" variant="outline" disabled={savingId === r.id} onClick={() => handleSaveNote(r.id)}>
+              {savingId === r.id ? "Guardando..." : "Guardar nota"}
+            </Button>
           </div>
         ))}
         {incidents.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">Sin incidencias registradas</p>}

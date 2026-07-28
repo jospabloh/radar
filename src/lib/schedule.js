@@ -26,6 +26,32 @@ export function getTodaysSchedule(employee) {
   return employee.schedule[getTodayKey()] || null;
 }
 
+// Shared with CompanyDashboard.jsx (full set) and IncidentPanel.jsx
+// (absent/late subset) — both were independently declaring the same
+// attendance-status labels/colors; kept alongside computeStatus since
+// they describe the values it returns.
+export const ATTENDANCE_STATUS_STYLE = {
+  on_time: "bg-success/10 text-success",
+  late: "bg-warning/10 text-warning",
+  late_pending: "bg-warning/10 text-warning",
+  absent: "bg-destructive/10 text-destructive",
+  extension: "bg-primary/10 text-primary",
+  auto_logout: "bg-muted text-muted-foreground",
+  no_laboral: "bg-muted text-muted-foreground",
+  not_started: "bg-muted text-muted-foreground",
+};
+
+export const ATTENDANCE_STATUS_LABEL = {
+  on_time: "A tiempo",
+  late: "Tarde",
+  late_pending: "Tarde",
+  absent: "Ausente",
+  extension: "Extensión",
+  auto_logout: "Auto-logout",
+  no_laboral: "No labora hoy",
+  not_started: "Sin registrar",
+};
+
 export function computeStatus(employee, record) {
   const todaySchedule = getTodaysSchedule(employee);
   if (!todaySchedule || !todaySchedule.works) return "no_laboral";

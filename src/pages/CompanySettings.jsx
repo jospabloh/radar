@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 
 const TIMEZONES = [
   "America/Mexico_City",
@@ -16,26 +18,30 @@ const TIMEZONES = [
 ];
 
 export default function CompanySettings() {
+  const { user } = useAuth();
   const [company, setCompany] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    base44.auth.me().then((u) => {
-      if (u.company_id) base44.entities.Company.get(u.company_id).then(setCompany);
-    });
-  }, []);
+    if (user?.company_id) base44.entities.Company.get(user.company_id).then(setCompany);
+  }, [user]);
 
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
-    await base44.entities.Company.update(company.id, {
-      name: company.name,
-      timezone: company.timezone,
-      whatsapp_enabled: company.whatsapp_enabled,
-    });
-    setSaving(false);
-    setSaved(true);
+    try {
+      await base44.entities.Company.update(company.id, {
+        name: company.name,
+        timezone: company.timezone,
+        whatsapp_enabled: company.whatsapp_enabled,
+      });
+      setSaved(true);
+    } catch (error) {
+      toast({ title: "No se pudo guardar", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!company) {

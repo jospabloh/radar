@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
 import { FileText, Upload } from "lucide-react";
 
 export default function EmployeeProfile() {
+  const { user } = useAuth();
   const [employee, setEmployee] = useState(null);
   const [docs, setDocs] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -15,28 +18,34 @@ export default function EmployeeProfile() {
   }, []);
 
   useEffect(() => {
-    base44.auth.me().then(async (u) => {
-      const emps = await base44.entities.Employee.filter({ user_id: u.id });
+    if (!user) return;
+    (async () => {
+      const emps = await base44.entities.Employee.filter({ user_id: user.id });
       const emp = emps[0];
       setEmployee(emp);
       if (emp) loadDocs(emp.id);
-    });
-  }, [loadDocs]);
+    })();
+  }, [user, loadDocs]);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await base44.entities.EmployeeDocument.create({
-      employee_id: employee.id,
-      company_id: employee.company_id,
-      name: file.name,
-      file_url,
-    });
-    setUploading(false);
-    loadDocs(employee.id);
-    e.target.value = "";
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.EmployeeDocument.create({
+        employee_id: employee.id,
+        company_id: employee.company_id,
+        name: file.name,
+        file_url,
+      });
+      loadDocs(employee.id);
+    } catch (error) {
+      toast({ title: "No se pudo subir el documento", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
   };
 
   if (!employee) {

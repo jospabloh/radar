@@ -8,8 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Building2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
-const TIER_COLOR = { starter: "bg-muted text-muted-foreground", pro: "bg-success/10 text-success", enterprise: "bg-purple-100 text-purple-700" };
+const TIER_COLOR = { starter: "bg-muted text-muted-foreground", pro: "bg-success/10 text-success", enterprise: "bg-accent text-accent-foreground" };
 
 export default function SuperAdminCompanies() {
   const [companies, setCompanies] = useState([]);
@@ -24,26 +25,34 @@ export default function SuperAdminCompanies() {
 
   const createCompany = async () => {
     setSaving(true);
-    await base44.entities.Company.create(form);
-    setSaving(false);
-    setShowCreate(false);
-    setForm({ name: "", is_mexican: true, tier: "starter", max_employees: 15 });
-    load();
+    try {
+      await base44.entities.Company.create(form);
+      setShowCreate(false);
+      setForm({ name: "", is_mexican: true, tier: "starter", max_employees: 15 });
+      load();
+    } catch (error) {
+      toast({ title: "No se pudo crear la empresa", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inviteAdmin = async () => {
     setSaving(true);
-    await base44.users.inviteUser(inviteForm.email, "user");
-    await base44.entities.Employee.create({
-      email: inviteForm.email,
-      full_name: inviteForm.full_name,
-      role: "company_admin",
-      company_id: showInvite.id,
-      hire_date: new Date().toISOString().split("T")[0],
-    });
-    setSaving(false);
-    setShowInvite(null);
-    setInviteForm({ email: "", full_name: "" });
+    try {
+      await base44.functions.invoke("createEmployee", {
+        email: inviteForm.email,
+        full_name: inviteForm.full_name,
+        role: "company_admin",
+        company_id: showInvite.id,
+      });
+      setShowInvite(null);
+      setInviteForm({ email: "", full_name: "" });
+    } catch (error) {
+      toast({ title: "No se pudo enviar la invitación", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

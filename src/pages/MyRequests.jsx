@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 
 const STATUS_STYLE = {
@@ -11,11 +12,13 @@ const STATUS_LABEL = { pending: "Pendiente", approved: "Aprobado", rejected: "Re
 const TYPE_LABEL = { pto: "Días/Permiso", schedule: "Cambio de horario", extension: "Extensión" };
 
 export default function MyRequests() {
+  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    base44.auth.me().then(async (u) => {
-      const emps = await base44.entities.Employee.filter({ user_id: u.id });
+    if (!user) return;
+    (async () => {
+      const emps = await base44.entities.Employee.filter({ user_id: user.id });
       const emp = emps[0];
       if (!emp) return;
       const [ptos, schedules, extensions] = await Promise.all([
@@ -29,8 +32,8 @@ export default function MyRequests() {
         ...extensions.map((r) => ({ ...r, type: "extension", detail: `${r.date} · ${r.requested_minutes} min` })),
       ].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
       setRequests(all);
-    });
-  }, []);
+    })();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background">
