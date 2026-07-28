@@ -7,9 +7,17 @@
   // Manager approve/reject now goes through the service-role function
   // `resolveApprovalRequest`, which verifies the caller's app_role before
   // writing via asServiceRole (role:admin branch below) — same pattern as
-  // AttendanceRecord's `updateAttendanceRecord`. Approvals.jsx was the only
-  // client-side writer of `status`/`manager_comment`; other fields (type,
-  // dates, reason) remain self-service editable by the requester.
+  // AttendanceRecord's `updateAttendanceRecord`.
+  //
+  // SECURITY (2): `create` is now scoped to the caller's OWN employee_id
+  // (via {{user.data.employee_id}}, same pattern as AttendanceRecord) — a
+  // company_id-only create rule let any employee file a PTO request under a
+  // COWORKER's employee_id/name, since both were client-supplied. And
+  // `update`'s company-wide branch was removed entirely: no client code
+  // calls entities.PTORequest.update anymore (Approvals.jsx's only write
+  // moved into resolveApprovalRequest above), so there is nothing left that
+  // legitimately needs to edit an existing request — not even the
+  // requester editing their own pending dates/reason (no such UI exists).
   "name": "PTORequest",
   "type": "object",
   "properties": {
@@ -74,15 +82,17 @@
     },
     "create": {
       "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
+        {
+          "$and": [
+            { "data.company_id": "{{user.data.company_id}}" },
+            { "data.employee_id": "{{user.data.employee_id}}" }
+          ]
+        },
         { "user_condition": { "role": "admin" } }
       ]
     },
     "update": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
       "user_condition": { "role": "admin" }

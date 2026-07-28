@@ -1,4 +1,10 @@
 {
+  // SECURITY: `create` is now scoped to the caller's OWN employee_id (same
+  // pattern as AttendanceRecord) — EmployeeProfile.jsx (the only client
+  // caller) always uploads to the caller's own employee record, so a
+  // company_id-only rule let any coworker upload a document into someone
+  // else's file. `update` is now service-role only (no client code calls
+  // entities.EmployeeDocument.update at all).
   "name": "EmployeeDocument",
   "type": "object",
   "properties": {
@@ -30,15 +36,17 @@
     },
     "create": {
       "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
+        {
+          "$and": [
+            { "data.company_id": "{{user.data.company_id}}" },
+            { "data.employee_id": "{{user.data.employee_id}}" }
+          ]
+        },
         { "user_condition": { "role": "admin" } }
       ]
     },
     "update": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
       "user_condition": { "role": "admin" }

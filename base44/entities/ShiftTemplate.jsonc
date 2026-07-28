@@ -1,4 +1,13 @@
 {
+  // SECURITY: create/update/delete are now service-role only. The previous
+  // company-wide create/update rule had no manager role check (any employee
+  // could rewrite company-wide shift templates), and `delete` was already
+  // (silently) service-role only — meaning ShiftSettings.jsx's delete button
+  // was already broken for every real user, since no `role: admin` end user
+  // exists. Create/delete now go through the manager-gated service-role
+  // function `createManagedRecord` (create) reusing the same MANAGER_ROLES
+  // check as `resolveApprovalRequest`; `update` has no client caller at all
+  // (ShiftSettings.jsx only creates and deletes).
   "name": "ShiftTemplate",
   "type": "object",
   "properties": {
@@ -44,16 +53,10 @@
       ]
     },
     "create": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "update": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
       "user_condition": { "role": "admin" }

@@ -33,13 +33,21 @@ export default function ShiftSettings() {
 
   const handleCreate = async () => {
     if (!form.name) return;
-    await base44.entities.ShiftTemplate.create({ ...form, company_id: companyId });
+    await base44.functions.invoke("createManagedRecord", {
+      entity: "ShiftTemplate",
+      action: "create",
+      data: form,
+    });
     setForm({ name: "", start: "09:00", end: "18:00", days_of_week: [] });
     load(companyId);
   };
 
   const handleDelete = async (id) => {
-    await base44.entities.ShiftTemplate.delete(id);
+    await base44.functions.invoke("createManagedRecord", {
+      entity: "ShiftTemplate",
+      action: "delete",
+      recordId: id,
+    });
     load(companyId);
   };
 
