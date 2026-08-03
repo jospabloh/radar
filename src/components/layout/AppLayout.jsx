@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Radar, LogOut, Menu } from "lucide-react";
@@ -143,6 +143,20 @@ export default function AppLayout() {
         <Outlet />
       </div>
     );
+  }
+
+  // SECURITY: this route group has no per-page role check — every page here
+  // (Employees, CompanySettings, LicenseManagement, SuperAdminCompanies,
+  // etc.) rendered for ANY authenticated admin/manager role via a direct URL,
+  // even one whose NAV_BY_ROLE entry above doesn't include that page (e.g. a
+  // store_manager hitting /configuracion-empresa or /gestion-licencias
+  // directly). The underlying entity RLS/service-role functions still gate
+  // the actual reads/writes, so this was not a data-exposure hole, but it
+  // let the wrong role reach an admin UI it has no business seeing. NAV_BY_ROLE
+  // above is already the authoritative per-role page list — enforce it here
+  // too, redirecting to that role's first allowed destination.
+  if (user && items.length > 0 && !items.some((item) => item.path === location.pathname)) {
+    return <Navigate to={items[0].path} replace />;
   }
 
   return (
