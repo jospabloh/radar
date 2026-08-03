@@ -53,8 +53,16 @@
       "type": "string",
       "enum": [
         "active",
-        "suspended"
+        "suspended",
+        "view_only"
       ],
+      // view_only agregado 2026-08-03: cierra el hueco de solo-lectura (día 8
+      // del ciclo unificado de licencias) que Radar no tenía — ver
+      // docs/superpowers/specs/2026-08-03-portfolio-license-lifecycle-design.md
+      // en acacia-mission-control. Committear este .jsonc NO cambia el
+      // schema desplegado en Base44 — falta el deploy real (Base44 MCP) y
+      // luego flippear `readOnlyStatus: null` -> `'view_only'` en
+      // acacia-mission-control/api/_lib/licenseControl.js para radar.
       "default": "active",
       "rls": { "write": { "user_condition": { "role": "admin" } } }
     }
