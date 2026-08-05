@@ -101,6 +101,12 @@ None found this pass.
    bundling a breaking dependency migration into a security-audit pass.
    Current `npm audit` output (2 moderate remaining) is captured in this
    PR's CI run for reference.
+   **Update 2026-08-05 (v0.1.1):** done, as its own follow-up PR —
+   `react-router-dom` bumped to `^7.18.2`. Both moderate advisories above
+   are cleared. The bump surfaces a new *high*-severity advisory
+   (GHSA-qwww-vcr4-c8h2, RSC-mode CSRF) that does not apply to this app
+   (no RSC/framework-mode usage here) — see `CHANGELOG.md` `[0.1.1]` for
+   the full writeup. `npm audit` stays informational in CI for this reason.
 
 ### Not applicable (investigated per this run's specific checklist, no gap found)
 

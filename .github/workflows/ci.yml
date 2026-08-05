@@ -6,11 +6,13 @@ name: CI
 #
 # `typecheck` and `npm audit` run informationally (continue-on-error) rather
 # than blocking: as of 2026-08-03 there are 236 pre-existing `tsc` errors
-# (JSX prop-type mismatches, unrelated to any single change) and one
-# moderate react-router-dom advisory that requires a major-version bump to
-# clear. Neither is safe to silently block every future PR on; both are
-# tracked in docs/2026-08-03-audit-rollback.md instead. Promote either step
-# to blocking once its backlog is cleared.
+# (JSX prop-type mismatches, unrelated to any single change), and as of
+# 2026-08-05 (v0.1.1, react-router-dom v6→v7) there is one high-severity
+# react-router advisory (GHSA-qwww-vcr4-c8h2, RSC-mode CSRF) that does not
+# apply to this app — see CHANGELOG.md [0.1.1]. Neither is safe to silently
+# block every future PR on; both are tracked in
+# docs/2026-08-03-audit-rollback.md instead. Promote either step to
+# blocking once its backlog is cleared.
 
 on:
   push:
