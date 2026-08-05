@@ -5,6 +5,20 @@
   // company_id-only rule let any coworker upload a document into someone
   // else's file. `update` is now service-role only (no client code calls
   // entities.EmployeeDocument.update at all).
+  //
+  // SECURITY (2, RADAR audit 2026-08-03): `read` narrowed from company-wide
+  // to the caller's OWN employee_id (same $and shape as `create`) plus the
+  // service-role branch. Unlike ShiftTemplate/Holiday (non-sensitive,
+  // legitimately company-wide), this entity holds actual personal documents
+  // (ID, contracts — see `file_url`/`name`), and EmployeeProfile.jsx (the
+  // only reader) always filters by the caller's own employee.id. A
+  // company_id-only read rule let ANY employee in the company read ANY
+  // coworker's uploaded documents by passing a different employee_id to
+  // entities.EmployeeDocument.filter() directly — a PII exposure with no
+  // offsetting product feature (there is no manager-facing document review
+  // UI in src/ today). If/when such a UI is built, extend this rule with a
+  // role-checked read path (mirroring the manager-only write functions)
+  // rather than reopening it to company-wide.
   "name": "EmployeeDocument",
   "type": "object",
   "properties": {
@@ -30,7 +44,12 @@
   "rls": {
     "read": {
       "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
+        {
+          "$and": [
+            { "data.company_id": "{{user.data.company_id}}" },
+            { "data.employee_id": "{{user.data.employee_id}}" }
+          ]
+        },
         { "user_condition": { "role": "admin" } }
       ]
     },

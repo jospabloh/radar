@@ -1,10 +1,23 @@
 # RADAR permissions matrix
 
-Generated as part of the 2026-07-28 RADAR audit (three passes). Reflects
-the RLS rules in `base44/entities/*.jsonc` **after** all three passes'
-fixes, plus the five service-role functions that carry their own
-authorization checks (`updateAttendanceRecord`, `resolveApprovalRequest`,
+Generated as part of the 2026-07-28 RADAR audit (three passes) and
+reconciled again on 2026-08-03 (pass 4 — see that section below for what
+changed). Reflects the RLS rules in `base44/entities/*.jsonc` **after** all
+four passes' fixes, plus the five service-role functions that carry their
+own authorization checks (`updateAttendanceRecord`, `resolveApprovalRequest`,
 `createManagedRecord`, `createEmployee`, `updateSupportTicket`).
+
+**Verification note (2026-08-03):** this matrix describes the RLS
+**declared in the repo's `.jsonc` files**, re-read and re-checked line by
+line against the table below on this date. This session had no
+authenticated Base44 CLI/MCP session available (OAuth required,
+non-interactive environment), so it could **not** confirm the *deployed*
+Base44 backend schema actually matches these files — per this repo's own
+deploy-order notes (see `docs/2026-07-28-audit-rollback.md`), committing
+`.jsonc` changes alone does not change anything at runtime. Treat every row
+below as "correct in the repo" and confirm against the live schema (Base44
+dashboard or an authenticated MCP session) before relying on it for an
+incident response.
 
 Roles are the app's business roles (`User.app_role` /
 `Employee.role`): **employee**, **store_manager**, **company_admin**,
@@ -30,7 +43,7 @@ only via `asServiceRole` from a backend function.
 | ScheduleChangeRequest | company | fn (manager-only, via `createManagedRecord`) | fn (manager-only, via `resolveApprovalRequest`; also writes `Employee.schedule`) | service only |
 | ShiftTemplate | company | fn (manager-only, via `createManagedRecord`) | service only | fn (manager-only, via `createManagedRecord`) |
 | Holiday | company | service only | service only | service only |
-| EmployeeDocument | company | own | service only | service only |
+| EmployeeDocument | own (2026-08-03: was company) | own | service only | service only |
 | NotificationPreference | own + company (read only) | own | own | service only |
 | SupportTicket | company | company + own identity (`created_by_id`) | fn (`updateSupportTicket`, company_admin only) | service only |
 | SupportTicketMessage | company (excl. internal notes) | company + own identity (`author_id`) | service only | service only |
@@ -162,15 +175,73 @@ by a role-checking backend function. No remaining ⚠️ gaps.
   the caller's `Employee` row just to read `company_id`, which is already
   present directly on `User`.
 
+### Pass 4 (2026-08-03 — re-verification + one real gap)
+
+Re-read every `.jsonc` entity file, every service-role function, and every
+role/route check in `src/` line by line against this matrix. No regression
+found in anything pass 1-3 fixed. One new gap found and fixed, one
+UI-reachability gap found and fixed, everything else confirmed sound:
+
+- **`EmployeeDocument.read` narrowed from company-wide to the caller's own
+  `employee_id`** (mirrors the `create` rule's `$and` shape). This entity
+  holds actual personal documents (ID, contracts), unlike `ShiftTemplate`/
+  `Holiday` below, which really are non-sensitive company-wide reference
+  data — the "Not touched" reasoning immediately below previously grouped
+  all three together, which was itself an inconsistency in pass 3's own
+  writeup (the justification text only actually argued for
+  `ShiftTemplate`/`Holiday`). `EmployeeProfile.jsx`, the only client
+  reader, already always scopes to the caller's own employee record, so
+  nothing legitimate depended on the wider rule. No manager-facing document
+  review UI exists in `src/` today.
+- **Route-level role gate added to `AppLayout.jsx`.** Every admin/manager
+  page under that layout (Employees, CompanySettings, LicenseManagement,
+  SuperAdminCompanies, ShiftSettings, Reports, ProductivityAnalytics,
+  IncidentPanel, Approvals) previously rendered for *any* authenticated
+  admin/manager-tier user who navigated to its URL directly, even one whose
+  `NAV_BY_ROLE` entry (the sidebar) doesn't list that page — e.g. a
+  `store_manager` hitting `/gestion-licencias` or `/configuracion-empresa`
+  directly. Checked every such page's actual data reads/writes: all of them
+  remained correctly scoped by entity RLS or a role-checking service-role
+  function (`createEmployee`, `resolveApprovalRequest`,
+  `createManagedRecord`, `updateSupportTicket`), so this was never a
+  cross-tenant or cross-role *data* exposure — but it did let the wrong
+  role reach an admin UI shell it has no business seeing. `AppLayout` now
+  redirects to that role's first `NAV_BY_ROLE` destination when the current
+  route isn't in its list.
+- **WhatsApp check-in/out spoofing — not applicable, no such feature
+  exists.** `Company.whatsapp_enabled` / `NotificationPreference.whatsapp_enabled`
+  are notification-channel toggles only; grepped the whole repo for any
+  WhatsApp Business API / Twilio / Meta Graph API integration or inbound
+  webhook and found none. The only check-in/out path is the authenticated
+  web app (`EmployeePortal.jsx`), which already writes
+  `AttendanceRecord.create`/`.update` scoped to the caller's own
+  `employee_id` *and* `company_id` (both checked against
+  `{{user.data.*}}`, not trusted from the client payload) — confirmed sound,
+  no spoofing path found.
+- **Stripe / license-trial flow — confirmed not integrated.**
+  `@stripe/react-stripe-js`/`@stripe/stripe-js` were listed in
+  `package.json` but grepped zero usages in `src/` or `base44/`.
+  `LicenseManagement.jsx`'s upgrade flow creates a `SupportTicket`
+  (`category: "billing"`) reviewed by a human — no payment form, no card
+  data handling anywhere in this app. Removed the unused Stripe packages
+  (see `CHANGELOG.md`); this also matches the ACACIA portfolio's stated
+  payments policy (Mercado Pago only, Stripe not used).
+- Everything else in the table — `Company` billing-field lock, all four
+  request-approval entities' service-role-only `status`, `Employee`
+  create/update, `User` field locks, `SupportTicket`/`SupportTicketMessage`
+  identity binding, `AppSession` field locks — re-checked against the
+  current `.jsonc` files and confirmed unchanged and sound.
+
 ## Not touched (judgment calls, reasoning recorded)
 
 - **Realtime-subscription inconsistency** (`CompanyDashboard.jsx` is the
   only page that calls `.subscribe()`; others poll on mount/action) — a
   product/consistency decision, not a bug, left alone.
-- **`ShiftTemplate`/`Holiday`/`EmployeeDocument` read scope** stays
-  company-wide rather than manager-scoped for `ShiftTemplate`/`Holiday` —
-  reading a shift template or holiday isn't sensitive, and narrowing it
-  further wasn't part of any concrete finding.
+- **`ShiftTemplate`/`Holiday` read scope** stays company-wide rather than
+  manager-scoped — reading a shift template or holiday isn't sensitive, and
+  narrowing it further wasn't part of any concrete finding. (`EmployeeDocument`
+  was pulled out of this group and narrowed in pass 4 above — it doesn't
+  belong here.)
 - **`scripts/validate-entity-rls.mjs`** still only checks structural shape,
   not whether a role check is actually required for an operation — every
   bug fixed across all three passes passed the guard script cleanly, by
