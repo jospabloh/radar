@@ -9,6 +9,45 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.1] — 2026-08-05
+
+Follow-up to the 0.1.0 release-readiness pass: the deferred
+`react-router-dom` v6→v7 migration (see the Security section of 0.1.0 and
+`docs/2026-08-03-audit-rollback.md`, finding 6). Dependency/audit-hygiene
+change only — no route, redirect, or behavioral changes.
+
+### Changed
+
+- `react-router-dom` `^6.26.0` → `^7.18.2`. No import changes needed (v7
+  keeps `react-router-dom` as a compatibility re-export of `react-router`)
+  and no code changes needed — this app uses only the declarative
+  `BrowserRouter`/`Routes`/`Route` API (`Navigate`, `Outlet`, `Link`,
+  `useLocation`, `useSearchParams`, `useNavigationType`), no data-router
+  APIs (`createBrowserRouter`, loaders/actions, `Form`, `json()`/`defer()`),
+  so none of the v6→v7 breaking changes apply. All routes, redirects, and
+  the catch-all 404 route re-verified after the bump.
+
+### Security
+
+- Clears the residual moderate `react-router-dom` advisories tracked since
+  0.1.0 (GHSA-wrjc-x8rr-h8h6, GHSA-337j-9hxr-rhxg) — both required the
+  major-version bump.
+- Bumping to the current v7 latest surfaces one new high-severity advisory,
+  GHSA-qwww-vcr4-c8h2 ("RSC Mode CSRF Bypass"), affecting `react-router`
+  7.12.0–8.2.0. **Investigated, not applicable**: the advisory only affects
+  apps using React Router's unstable RSC (React Server Components) APIs;
+  this app uses plain client-side declarative routing (no framework mode,
+  no server actions/loaders, no RSC), confirmed by re-checking the full
+  `react-router-dom` import surface. `npm run typecheck` stayed at exactly
+  236 pre-existing errors (none router-related), so no scope crept in from
+  the bump. `npm audit --audit-level=high` remains non-zero for this
+  reason and stays informational/non-blocking in CI (see workflow comment)
+  until the ecosystem publishes a patched `react-router-dom` build, or a
+  future pass moves the app fully onto the `react-router` package (v8+,
+  which dropped the separate `-dom` package) to clear it outright — tracked
+  as a follow-up, out of scope here since it would mean rewriting all 12
+  `react-router-dom` import sites.
+
 ## [0.1.0] — 2026-08-03
 
 First versioned release. This pass focused on release-readiness (this
