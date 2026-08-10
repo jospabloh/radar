@@ -9,6 +9,56 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.2] — 2026-08-10
+
+Scheduled RADAR audit routine re-run. Re-verified the full security/quality
+checklist from the 2026-08-03/08-05 passes (tenant isolation, WhatsApp
+check-in/out scoping, role checks, permissions matrix, changelog, CI) — no
+regressions found; see `docs/2026-08-10-audit-rollback.md` for the full
+findings-by-severity writeup. One new item surfaced since 0.1.1:
+
+### Security
+
+- **[Low] Three new transitive dev/build-time dependency advisories**,
+  none previously flagged: `nanoid` <3.3.17 (high — zero-size custom
+  generator can loop indefinitely; pulled in by `postcss`, build-time only),
+  `js-yaml` 4.0.0–4.3.0 (high — quadratic CPU consumption parsing `!!omap`;
+  pulled in by `eslint`, dev-only, this app never parses untrusted YAML),
+  and `dompurify` <=3.4.12 (moderate — `IN_PLACE` hook removal can leave a
+  detached subtree executable; pulled in by `jspdf`, used for
+  client-generated PDFs, not fed attacker-controlled DOM directly). All
+  three are transitive (no direct dependency on any of them) and none are
+  reachable via untrusted end-user input in this app. Fixed with
+  `npm audit fix` — patch-level only (`nanoid` 3.3.16→3.3.18, `js-yaml`
+  4.3.0→4.3.1, `dompurify` 3.4.12→3.4.13), verified via dry run to add no
+  new majors and change no other dependency; `npm audit` now reports 0
+  vulnerabilities. Re-verified after the bump: lint clean, build clean,
+  `validate:rls` still passes (14 entities, 12 tenant-scoped), `typecheck`
+  stays at exactly 236 pre-existing errors (same count as 0.1.1, none new).
+
+### Re-verified (no regression found)
+
+- Tenant isolation on all 14 `base44/entities/*.jsonc` files — deployed
+  Base44 schema (via `list_entity_schemas`) matches the repo `.jsonc`
+  exactly; every tenant-scoped entity carries the `rls` block added in
+  PRs #5–#10.
+- WhatsApp attendance flow: `AttendanceRecord` create/update RLS still
+  requires both `data.company_id == {{user.data.company_id}}` and
+  `data.employee_id == {{user.data.employee_id}}`, so a check-in/out write
+  cannot target another employee's or company's record. The `/15min`
+  cron (`attendanceMonitor`) only reads via the service role and only
+  writes `absent`/`auto_logout` records it derives itself, not from
+  caller input. `updateAttendanceRecord` (the manager cross-employee write
+  path) still gates on `MANAGER_ROLES` + same-company before using the
+  service role.
+- No secrets committed; `.env`/`.env.*` stay gitignored.
+- `docs/permissions-matrix.md` role set (`employee`, `store_manager`,
+  `company_admin`, `super_admin`) and module list still match
+  `Employee.role` / `User.app_role` in the deployed schema — no drift.
+- `UserManual.jsx` (tenant-neutral, no internal debug detail) already
+  exists — no gap to fill this pass.
+- No Stripe usage (`@stripe/*` was removed in 0.1.0 and stays removed).
+
 ## [0.1.1] — 2026-08-05
 
 Follow-up to the 0.1.0 release-readiness pass: the deferred
