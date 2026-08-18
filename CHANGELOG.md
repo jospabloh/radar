@@ -9,6 +9,41 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.3] — 2026-08-18
+
+Portfolio-standard audit pass (`jospabloh/acacia-app-standard`), modules 1/3/6/7.
+
+### Security
+
+- **Billing write-gate on Safe functions (module 3).** `updateAttendanceRecord`,
+  `resolveApprovalRequest`, `createManagedRecord`, and `createEmployee`
+  re-checked `app_role` and tenant scoping but never `Company.status` — a
+  suspended or view_only tenant's manager could still approve requests, edit
+  attendance, create shift templates, and invite employees. All four now
+  check `Company.status` first (`_billingGuard.ts`, `super_admin` bypasses).
+  `updateSupportTicket` deliberately left ungated so a suspended company can
+  still reach support. Not independently verified against the live deployed
+  backend — `deno` isn't available in this environment and this repo's CI
+  has no Deno test step for `base44/functions/*.ts`.
+
+### Added
+
+- **Account export + danger zone (module 7).** `CompanySettings.jsx` only
+  ever exposed name/timezone/whatsapp_enabled before this — new
+  "Descargar mis datos" (`exportCompanyData`, every read scoped to the
+  caller's own `company_id`) and "Solicitar eliminación de la empresa" (a
+  high-priority `SupportTicket` routed to Mission Control, not a direct
+  delete — RLS reserves `Company.delete` to the platform owner by design).
+
+### Investigated, not a gap
+
+- **No "trial" status on `Company.status` (module 1).** Confirmed RADAR has
+  no self-serve signup that would start a trial clock — `Register.jsx`
+  creates a user account only, and every `Company` after the first-ever one
+  is created exclusively through `SuperAdminCompanies.jsx`, a `super_admin`-
+  only manual form. A trial phase with no entry point to reach it would be
+  speculative UI, not a real feature. See `CLAUDE.md` for the full writeup.
+
 ## [0.1.2] — 2026-08-10
 
 Scheduled RADAR audit routine re-run. Re-verified the full security/quality

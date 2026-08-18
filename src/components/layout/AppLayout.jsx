@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import ThemeToggle from "@/components/ThemeToggle";
+import CompanyStatusBanner from "@/components/layout/CompanyStatusBanner";
 
 const NAV_BY_ROLE = {
   super_admin: [{ label: "Empresas", path: "/companies", icon: Building2 }],
@@ -117,12 +118,16 @@ function UserFooter({ user }) {
 export default function AppLayout() {
   const { user } = useAuth();
   const [companyName, setCompanyName] = useState(null);
+  const [companyStatus, setCompanyStatus] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     if (user?.company_id) {
-      base44.entities.Company.get(user.company_id).then((company) => setCompanyName(company?.name || null));
+      base44.entities.Company.get(user.company_id).then((company) => {
+        setCompanyName(company?.name || null);
+        setCompanyStatus(company?.status || null);
+      });
     }
   }, [user]);
 
@@ -201,6 +206,7 @@ export default function AppLayout() {
         </header>
 
         <main className="flex-1 overflow-auto">
+          <CompanyStatusBanner status={companyStatus} isSuperAdmin={user?.app_role === "super_admin"} />
           <Outlet />
         </main>
       </div>
