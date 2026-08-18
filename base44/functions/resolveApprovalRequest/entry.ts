@@ -14,6 +14,7 @@
 // ScheduleChangeRequest; extend the AttendanceRecord for ExtensionRequest),
 // so those can't be triggered without also going through the manager check.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
+import { assertCompanyWritable } from './_billingGuard.ts';
 
 const ENTITIES = new Set(['PTORequest', 'ScheduleChangeRequest', 'ExtensionRequest']);
 const STATUSES = new Set(['approved', 'rejected']);
@@ -46,6 +47,9 @@ Deno.serve(async (req) => {
     if (user.app_role !== 'super_admin' && record.company_id !== user.company_id) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    const billingBlock = await assertCompanyWritable(sr, record.company_id, user.app_role);
+    if (billingBlock) return Response.json({ error: billingBlock.error, message: billingBlock.message }, { status: billingBlock.status });
 
     const updates: Record<string, unknown> = { status };
     if (entity === 'PTORequest' && typeof manager_comment === 'string') {

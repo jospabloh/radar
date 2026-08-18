@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
+import { assertCompanyWritable } from './_billingGuard.ts';
 
 // updateAttendanceRecord — manager-only write path for AttendanceRecord
 // fields on OTHER employees' rows (extension approval in Approvals.jsx,
@@ -36,6 +37,9 @@ Deno.serve(async (req) => {
     if (user.app_role !== 'super_admin' && record.company_id !== user.company_id) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    const billingBlock = await assertCompanyWritable(sr, record.company_id, user.app_role);
+    if (billingBlock) return Response.json({ error: billingBlock.error, message: billingBlock.message }, { status: billingBlock.status });
 
     const safeUpdates = {};
     for (const [key, value] of Object.entries(updates)) {
