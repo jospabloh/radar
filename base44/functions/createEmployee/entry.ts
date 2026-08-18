@@ -21,6 +21,7 @@
 // validation the client-side call never had, it doesn't change what
 // privilege inviteUser itself requires.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
+import { assertCompanyWritable } from './_billingGuard.ts';
 
 const MANAGER_ROLES = new Set(['company_admin', 'store_manager']);
 
@@ -60,9 +61,12 @@ Deno.serve(async (req) => {
       grantedRole = role;
     }
 
+    const sr = base44.asServiceRole;
+    const billingBlock = await assertCompanyWritable(sr, targetCompanyId, user.app_role);
+    if (billingBlock) return Response.json({ error: billingBlock.error, message: billingBlock.message }, { status: billingBlock.status });
+
     await base44.users.inviteUser(email, 'user');
 
-    const sr = base44.asServiceRole;
     const employee = await sr.entities.Employee.create({
       email,
       full_name,

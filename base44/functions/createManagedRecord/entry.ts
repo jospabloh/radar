@@ -19,6 +19,7 @@
 // writing via asServiceRole (which bypasses RLS — the checks below are the
 // only gate).
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
+import { assertCompanyWritable } from './_billingGuard.ts';
 
 const ENTITIES = new Set(['ScheduleChangeRequest', 'ShiftTemplate']);
 const DELETABLE_ENTITIES = new Set(['ShiftTemplate']);
@@ -51,6 +52,8 @@ Deno.serve(async (req) => {
       if (user.app_role !== 'super_admin' && record.company_id !== user.company_id) {
         return Response.json({ error: 'Forbidden' }, { status: 403 });
       }
+      const deleteBlock = await assertCompanyWritable(sr, record.company_id, user.app_role);
+      if (deleteBlock) return Response.json({ error: deleteBlock.error, message: deleteBlock.message }, { status: deleteBlock.status });
       await sr.entities[entity].delete(recordId);
       return Response.json({ success: true });
     }
@@ -58,6 +61,10 @@ Deno.serve(async (req) => {
     if (!data || typeof data !== 'object') {
       return Response.json({ error: 'data is required' }, { status: 400 });
     }
+
+    const createBlock = await assertCompanyWritable(sr, user.company_id, user.app_role);
+    if (createBlock) return Response.json({ error: createBlock.error, message: createBlock.message }, { status: createBlock.status });
+
     // company_id always comes from the caller's own tenant, never the client
     // payload — a manager can only create records for their own company.
     const payload = { ...data, company_id: user.company_id };
