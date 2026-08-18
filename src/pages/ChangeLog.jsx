@@ -1,7 +1,9 @@
 import React from "react";
 import PageHeader from "@/components/PageHeader";
+import { APP_VERSION, RELEASE_DATE } from "@/lib/appConfig";
 
 const CHANGES = [
+  { date: "2026-08-18", title: "Facturación, exportación de datos y zona de peligro", items: ["Las acciones de registrar asistencia, aprobar solicitudes, crear turnos e invitar empleados ahora se bloquean si la empresa está suspendida o en modo solo lectura — antes solo se validaba el rol, no el estado de la licencia", "Nuevo: descargar todos los datos de tu empresa desde Configuración", "Nuevo: solicitar la eliminación de la empresa desde Configuración (se envía a soporte, no es instantáneo)"] },
   { date: "2026-07-28", title: "Auditoría de seguridad", items: ["Corregido: un empleado ya no puede aprobar su propia solicitud de PTO, cambio de horario o extensión", "Corregido: un empleado ya no puede modificar el plan/licencia de su empresa directamente", "Corregido: los datos de otro usuario (incluido su email) ya no son editables por cualquier compañero", "Corregido: las preferencias de notificación de otro usuario ya no son modificables por cualquier compañero", "Corregido: un empleado ya no puede autoasignarse el rol de administrador (ni al crear ni al editar)", "Corregido: una solicitud de PTO o extensión ya no puede registrarse a nombre de otro compañero", "Corregido: el botón para eliminar un turno predeterminado, que nunca había funcionado, ahora funciona para gerentes/administradores", "Corregido: solo administradores de empresa pueden cambiar el estado de un ticket de soporte", "Corregido: la barra lateral ya no desaparece al navegar a Analítica, Incidencias, Calendario, Horarios, Empresa, Licencias, Notificaciones, Manual, Soporte o Historial"] },
   { date: "2026-07-01", title: "RADAR", items: ["La plataforma se renombró a RADAR", "El nombre de la empresa activa ahora se muestra en el panel"] },
   { date: "2026-06-20", title: "Monitoreo automático de asistencia", items: ["Detección automática de ausencias", "Cierre automático de jornadas abiertas cada 15 minutos"] },
@@ -24,6 +26,9 @@ export default function ChangeLog() {
             </ul>
           </div>
         ))}
+        <p className="text-center text-xs text-muted-foreground pt-2 pb-6">
+          Versión {APP_VERSION} · {RELEASE_DATE}
+        </p>
       </div>
     </div>
   );
