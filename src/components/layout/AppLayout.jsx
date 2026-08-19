@@ -145,6 +145,14 @@ export default function AppLayout() {
   if (user && !NAV_BY_ROLE[user.app_role]) {
     return (
       <div className="min-h-screen bg-background">
+        {/* Employees are subject to the same module-3 billing write-gate
+            (_billingGuard.ts on updateAttendanceRecord etc.) as admin/manager
+            roles below, but were missing this banner entirely until the
+            2026-08-19 re-verification audit caught it — an employee at a
+            suspended company saw only a generic error toast on clock-in,
+            with no explanation why. `companyStatus` is already fetched above
+            regardless of role. */}
+        <CompanyStatusBanner status={companyStatus} isSuperAdmin={false} />
         <Outlet />
       </div>
     );

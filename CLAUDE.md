@@ -79,13 +79,19 @@ clock — and RADAR genuinely doesn't have one:
 - **This isn't an oversight — it matches how the product is actually sold.**
   Unlike flowfin/rumbo/liuma/puntos/stockflow, which all have a public
   self-serve signup that starts a trial clock the moment someone creates a
-  tenant, RADAR's tenants are provisioned by ACACIA directly (consistent
-  with module 9's finding — there is no `apps/radar.html` marketing page in
-  `acaciaco-site` driving self-serve interest in the first place). A
-  "trial" status with no trigger anywhere to enter it would be exactly the
-  same shape of problem as `jospabloh/liuma`'s unwired danger-zone table —
-  schema and UI built for a flow that doesn't exist, which reads as done
-  without doing anything.
+  tenant, RADAR's tenants are provisioned by ACACIA directly — sales-led,
+  not self-serve. **Correction (2026-08-19):** this section originally cited
+  "no `apps/radar.html` marketing page in `acaciaco-site`" as supporting
+  evidence for that claim — module 9's own gap at the time this was written.
+  `apps/radar.html` was added the same day (see module 9 elsewhere in this
+  file's git history / the portfolio audit), so that specific citation is
+  now stale; a marketing page existing doesn't create a self-serve signup
+  flow on its own, so the underlying conclusion (no trial trigger, `active`-
+  by-default is correct) still holds — just not for that specific reason
+  anymore. A "trial" status with no trigger anywhere to enter it would be
+  exactly the same shape of problem as `jospabloh/liuma`'s unwired
+  danger-zone table — schema and UI built for a flow that doesn't exist,
+  which reads as done without doing anything.
 
 **Conclusion: `Company.status`'s three-value enum is correct for RADAR's
 actual onboarding model.** If self-serve signup is ever built for RADAR,
@@ -113,6 +119,19 @@ regardless of which page the block happens on. `AppLayout` already fetched
 no `company_id`, never subject to this gate) or while status is still
 loading. Links to `/gestion-licencias` (the existing `LicenseManagement`
 page) rather than duplicating license detail in the banner itself.
+
+**Gap found and fixed 2026-08-19 (independent re-verification audit):**
+`AppLayout.jsx` has an earlier early-return branch, for the plain
+`employee` role (which has no `NAV_BY_ROLE` entry — see the module-9-
+adjacent comment in that file), that rendered a bare `<Outlet />` with
+**no banner**. Employees are subject to the exact same `_billingGuard.ts`
+write-gate as admin/manager roles (e.g. clocking in via
+`updateAttendanceRecord`), so a blocked employee saw the same
+unexplained generic error toast this banner exists to fix — just on the
+one role path that mattered most (employees clock in far more often than
+admins approve requests). Fixed by rendering `CompanyStatusBanner` in that
+branch too, using the `companyStatus` state `AppLayout` already fetches
+regardless of role.
 
 **Verified:** `npm run lint`, `npm run build` pass. Not visually verified
 against a live suspended/view_only company — not achievable in this
