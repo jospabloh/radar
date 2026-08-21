@@ -148,3 +148,11 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Corner theme switcher (src/components/ThemeSwitcher.jsx) — placement only.
+   RADAR has no mobile tab bar, so the plain bottom-right corner is free on
+   every breakpoint. */
+:root {
+  --theme-switcher-bottom: 1rem;
+  --theme-switcher-right: 1rem;
+}
