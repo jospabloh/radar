@@ -53,7 +53,7 @@ function fmtDate(iso) {
 
 export default function SupportCenter() {
   const { user } = useAuth();
-  const isAdmin = user?.app_role === "company_admin";
+  const isAdmin = isCompanyAdmin(user);
   const [companyId, setCompanyId] = useState(null);
   const [tickets, setTickets] = useState(null);
   const [subject, setSubject] = useState("");

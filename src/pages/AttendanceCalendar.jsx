@@ -12,7 +12,7 @@ const WEEKDAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "f
 
 export default function AttendanceCalendar() {
   const { user } = useAuth();
-  const isAdmin = user ? ["company_admin", "store_manager"].includes(user.app_role) : false;
+  const isAdmin = user ? [ROLES.COMPANY_ADMIN, ROLES.STORE_MANAGER].includes(user.app_role) : false;
   const [employees, setEmployees] = useState([]);
   const [employeeId, setEmployeeId] = useState(null);
   const [employee, setEmployee] = useState(null);

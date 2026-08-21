@@ -1,3 +1,4 @@
+import { assertPermission } from './_permissions.ts';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 
 // exportCompanyData — "Descargar mis datos" for module 7 (cuenta y zona de
@@ -33,6 +34,13 @@ Deno.serve(async (req) => {
     if (!companyId) return Response.json({ error: 'No tienes una empresa asignada' }, { status: 400 });
 
     const sr = base44.asServiceRole;
+
+    // Module 3: the granular key. Read-only, so deliberately NO billing gate —
+    // a suspended tenant getting its data out is exactly the case the export
+    // exists for, and gating it would make the danger zone a trap.
+    const permBlock = await assertPermission(sr, user, companyId, 'Empresa:export_data');
+    if (permBlock) return Response.json({ error: permBlock.error, permission: permBlock.permission, message: permBlock.message }, { status: permBlock.status });
+
     const company = await sr.entities.Company.get(companyId).catch(() => null);
     if (!company) return Response.json({ error: 'Empresa no encontrada' }, { status: 404 });
 

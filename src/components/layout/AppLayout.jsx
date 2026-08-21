@@ -11,10 +11,11 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import ThemeToggle from "@/components/ThemeToggle";
 import CompanyStatusBanner from "@/components/layout/CompanyStatusBanner";
+import { ROLE_LABELS, ROLES, isSuperAdmin } from "@/lib/rbac";
 
 const NAV_BY_ROLE = {
-  super_admin: [{ label: "Empresas", path: "/companies", icon: Building2 }],
-  company_admin: [
+  [ROLES.SUPER_ADMIN]: [{ label: "Empresas", path: "/companies", icon: Building2 }],
+  [ROLES.COMPANY_ADMIN]: [
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { label: "Empleados", path: "/employees", icon: Users },
     { label: "Aprobaciones", path: "/approvals", icon: CheckSquare },
@@ -30,7 +31,7 @@ const NAV_BY_ROLE = {
     { label: "Soporte", path: "/soporte", icon: LifeBuoy },
     { label: "Historial", path: "/historial-cambios", icon: History },
   ],
-  store_manager: [
+  [ROLES.STORE_MANAGER]: [
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { label: "Aprobaciones", path: "/approvals", icon: CheckSquare },
     { label: "Incidencias", path: "/panel-incidencias", icon: AlertTriangle },
@@ -38,12 +39,6 @@ const NAV_BY_ROLE = {
     { label: "Manual", path: "/manual-usuario", icon: BookOpen },
     { label: "Soporte", path: "/soporte", icon: LifeBuoy },
   ],
-};
-
-const ROLE_LABEL = {
-  super_admin: "Super administrador",
-  company_admin: "Administrador",
-  store_manager: "Gerente de tienda",
 };
 
 function NavList({ items, currentPath, onNavigate }) {
@@ -100,7 +95,7 @@ function UserFooter({ user }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-foreground">{name}</p>
-          <p className="truncate text-xs text-muted-foreground">{ROLE_LABEL[user?.app_role] || ""}</p>
+          <p className="truncate text-xs text-muted-foreground">{ROLE_LABELS[user?.app_role] || ""}</p>
         </div>
       </div>
       <ThemeToggle showLabel />
@@ -214,7 +209,7 @@ export default function AppLayout() {
         </header>
 
         <main className="flex-1 overflow-auto">
-          <CompanyStatusBanner status={companyStatus} isSuperAdmin={user?.app_role === "super_admin"} />
+          <CompanyStatusBanner status={companyStatus} isSuperAdmin={isSuperAdmin(user)} />
           <Outlet />
         </main>
       </div>

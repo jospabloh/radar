@@ -7,7 +7,10 @@ import { Plus, Clock } from "lucide-react";
 import EmployeeFormDialog from "@/components/employees/EmployeeFormDialog";
 import ScheduleChangeDialog from "@/components/employees/ScheduleChangeDialog";
 
-const ROLE_LABEL = { employee: "Empleado", store_manager: "Store Manager", company_admin: "Admin" };
+// Labels come from the single role declaration (src/lib/rbac.js) — this file
+// used to carry its own copy, which had already drifted ("Store Manager" vs
+// "Gerente de tienda" in EmployeeProfile.jsx).
+const ROLE_LABEL = ROLE_LABELS;
 
 export default function Employees() {
   const { user } = useAuth();

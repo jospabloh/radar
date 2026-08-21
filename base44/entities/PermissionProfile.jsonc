@@ -1,0 +1,63 @@
+{
+  // Module 3's per-tenant override layer: one row per (company_id, role_key),
+  // holding only the keys a company_admin has explicitly turned on or off for
+  // that role. Absent keys fall through to the registry default in
+  // src/lib/permissionRegistry.js — this is deliberately sparse, so changing a
+  // default in the registry still reaches every tenant that never overrode it.
+  //
+  // Writes are RLS-scoped to the caller's own company, so a tenant can only
+  // ever change its OWN roles' access even if the client is bypassed. Note
+  // that `read` is company-wide on purpose: PermissionContext.jsx has to load
+  // the caller's own role overrides at mount, and every backend Safe function
+  // reads the row for the acting role before allowing a write.
+  "name": "PermissionProfile",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Tenant this profile belongs to."
+    },
+    "role_key": {
+      "type": "string",
+      "enum": ["company_admin", "store_manager", "employee"],
+      "description": "Which app_role these overrides apply to. super_admin is never listed: it is an unconditional bypass, not an overridable role."
+    },
+    "label": {
+      "type": "string"
+    },
+    "permissions": {
+      "type": "object",
+      "description": "Sparse map of 'Section:action' -> boolean. Only keys present here override the registry default for role_key."
+    },
+    "updated_by": {
+      "type": "string"
+    }
+  },
+  "required": ["company_id", "role_key"],
+  "rls": {
+    "read": {
+      "$or": [
+        { "data.company_id": "{{user.data.company_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "create": {
+      "$or": [
+        { "data.company_id": "{{user.data.company_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "data.company_id": "{{user.data.company_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "delete": {
+      "$or": [
+        { "data.company_id": "{{user.data.company_id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    }
+  }
+}
