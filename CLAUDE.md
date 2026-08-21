@@ -157,3 +157,131 @@ to build a dedicated release script here since nothing in this repo's
 pipeline that doesn't exist yet).
 
 **Verified:** `npm run lint`, `npm run build` pass.
+
+## Modules 2 and 3 — a real role declaration and a real permission system (2026-08-21)
+
+A portfolio-standard re-audit found these were the two modules RADAR did not
+have. Everything else was in place; these were genuinely absent, not
+partially built.
+
+### Module 2 — roles declared in one file
+
+The four roles existed only as string literals scattered across
+`AppLayout.jsx`, `CompanySettings.jsx`, `Approvals.jsx`, `Employees.jsx`,
+`EmployeeProfile.jsx`, `AttendanceCalendar.jsx` and five backend functions —
+with **three independent copies of the manager set** and **three of the label
+map, already drifted**: `Employees.jsx` labelled `store_manager` "Store
+Manager", `EmployeeProfile.jsx` "Gerente de tienda", and neither knew
+`super_admin` existed.
+
+New **`src/lib/rbac.js`** is now the only place a role is declared: `ROLES`,
+`ROLE_LABELS`, `MANAGER_ROLES`, `TENANT_ROLES` and the `isSuperAdmin` /
+`isCompanyAdmin` / `isManager` / `isEmployee` / `hasTenant` helpers. Every
+client copy was replaced with an import. The file also states the Layer 1 /
+Layer 2 separation explicitly, so nobody conflates these with Mission
+Control's operator roles.
+
+### Module 3 — granular permissions, enforced on both sides
+
+Before this, RADAR had **no permission concept at all** beyond the role:
+`MANAGER_ROLES.has(app_role)` was the entire answer, client and server. There
+was no way for a `company_admin` to say "my store_managers may approve PTO but
+may not export the company's data", and no key for anything to check.
+
+- **`src/lib/permissionRegistry.js`** — 13 keys across Asistencias,
+  Aprobaciones, Empleados, Horarios, Empresa and Soporte, each with a default
+  per role, plus `resolvePermission()` documenting the precedence.
+  `Soporte:*` is open to every role including `employee` on purpose: a person
+  locked out of everything else still has to be able to say so, which is the
+  same reason `updateSupportTicket` stays outside the billing gate.
+- **`PermissionProfile` entity** — one sparse row per `(company_id,
+  role_key)`, holding only the keys a company_admin explicitly overrode. Sparse
+  matters: changing a registry default still reaches every tenant that never
+  overrode it. RLS scopes writes to the caller's own company.
+- **`src/lib/PermissionContext.jsx`** — `usePermissions().can(key)`, mounted in
+  `App.jsx`. Fails **closed to the registry defaults**, not open: a failed
+  `PermissionProfile` read yields the same answer the server computes when no
+  override row exists.
+- **Server-side re-check in all five write/export functions** —
+  `resolveApprovalRequest` (`Aprobaciones:resolve`), `updateAttendanceRecord`
+  (`Asistencias:edit`), `createManagedRecord` (`Horarios:manage` /
+  `Empleados:propose_schedule`, via `ENTITY_PERMISSION` so a new managed entity
+  cannot be added without choosing a key), `createEmployee`
+  (`Empleados:create`, checked **before** `inviteUser` fires so a denied caller
+  doesn't cause a real invitation email) and `exportCompanyData`
+  (`Empresa:export_data`). Each is checked against the **record's own**
+  `company_id`, never one from the request body.
+- **`exportCompanyData` gets the permission check but deliberately no billing
+  gate** — it is read-only, and a suspended tenant getting its data out is
+  exactly the case the export exists for. Gating it would make the danger zone
+  a trap.
+
+### The copies, and why they can't drift
+
+`_permissions.ts` follows the same "one colocated copy per function directory"
+shape `_billingGuard.ts` already had (Deno can't import across function dirs),
+but unlike `_billingGuard.ts` — whose header says "keep all copies identical;
+regenerate by hand" — these are **generated and checked**:
+
+- `base44/functions/_shared/_permissions.ts` is the canonical source;
+- `npm run generate:function-permissions` fans it out to the five functions;
+- `npm run validate:permissions` (wired into `npm run lint`) fails if the
+  canonical file drifts from `permissionRegistry.js` **or** if any colocated
+  copy differs from the canonical file byte-for-byte.
+
+Confirmed both halves are real, not no-ops, by flipping one default and
+watching each check fail before restoring it.
+
+**Deploy note: this pass adds an entity.** `PermissionProfile.jsonc` must be
+pushed (`npx base44 entities push`) — a repo `.jsonc` alone changes nothing at
+runtime, and until it exists in the deployed schema every override read returns
+nothing, which degrades to the registry defaults rather than breaking (the
+fail-closed-to-defaults design above), so the ordering is safe either way.
+
+**Verified:** `npm run lint` (eslint + `validate:rls` 15 entities, 13
+tenant-scoped + `validate:permissions` 13 keys, 5 synced copies) and
+`npm run build` both pass. `deno` still isn't available in this sandbox and
+this repo's CI has no `deno lint`/`deno test` step — the five edited `entry.ts`
+files were reviewed by hand, same caveat as the 2026-08-18 billing-gate pass.
+**Not verified:** a browser session as a `store_manager` with an explicit
+override. Risk is bounded: with no `PermissionProfile` row (i.e. every tenant
+today) the new checks resolve to exactly the role defaults the previous
+`MANAGER_ROLES` gate already enforced, with one deliberate tightening —
+`Empleados:create` and `Horarios:manage` are now `company_admin`-only, where a
+`store_manager` previously passed the coarse manager check.
+
+## ACACIA Portfolio Standard
+
+This app is part of the ACACIA portfolio and must stay compliant with
+`jospabloh/acacia-app-standard`. Read `STANDARD.md` there before implementing
+any item below for the first time, and re-read the relevant section before
+touching a module that's already implemented.
+
+- [x] Module 1 — License lifecycle: `Company.status`
+      (active|view_only|suspended), written ONLY by Mission Control. No native
+      lifecycle cron. The absence of a `trial` state is deliberate and
+      documented above — RADAR is sales-led, with no self-serve signup to
+      start a trial clock.
+- [x] Module 2 — Roles declared once in `src/lib/rbac.js` (2026-08-21),
+      mapped onto the `app_role` field. Mission Control's operator roles are a
+      separate layer, never conflated.
+- [x] Module 3 — Granular permissions: `src/lib/permissionRegistry.js` +
+      `PermissionProfile` overrides + server-side re-check in all five
+      write/export functions, behind `_billingGuard.ts`. Generated server
+      copies, drift-checked in `npm run lint` (2026-08-21).
+- [x] Module 4 — RLS: tenant branch + service-role admin branch on every
+      `company_id` entity, `validate-entity-rls.mjs` blocking in lint.
+- [x] Module 5 — Health: Mission Control polls `acaciaControl`'s `ping`.
+- [x] Module 6 — `src/lib/appConfig.js` + `ChangeLog.jsx`.
+- [x] Module 7 — `CompanySettings.jsx`: data export + deletion request routed
+      through support (a tenant admin cannot delete their own company by RLS,
+      by design).
+- [x] Module 8 — `SupportCenter.jsx` writes `SupportTicket` here first, pushed
+      by `notifyTicketCreated` and pulled by `acaciaControl`.
+- [x] Module 9 — `apps/radar.html` on `jospabloh/acaciaco-site`.
+- [x] Module 10 — Login on-brand with real error states;
+      `CompanyStatusBanner` explains suspended/view_only post-login on every
+      role path including the plain `employee` branch.
+
+Last audited against the standard: 2026-08-21 — modules 2 and 3 were the only
+open items; both closed in this pass.

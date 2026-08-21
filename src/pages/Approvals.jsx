@@ -5,28 +5,36 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { Check, X } from "lucide-react";
+import { usePermissions } from "@/lib/PermissionContext";
 
-function Row({ title, subtitle, onApprove, onReject }) {
+function Row({ title, subtitle, onApprove, onReject, canResolve }) {
   return (
     <div className="flex items-center justify-between px-5 py-4">
       <div>
         <p className="font-medium text-foreground">{title}</p>
         <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
-      <div className="flex gap-2">
-        <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={onApprove}><Check className="w-4 h-4" /></Button>
-        <Button size="sm" variant="outline" onClick={onReject}><X className="w-4 h-4" /></Button>
-      </div>
+      {canResolve && (
+        <div className="flex gap-2">
+          <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={onApprove}><Check className="w-4 h-4" /></Button>
+          <Button size="sm" variant="outline" onClick={onReject}><X className="w-4 h-4" /></Button>
+        </div>
+      )}
     </div>
   );
 }
 
-const MANAGER_ROLES = new Set(["company_admin", "store_manager", "super_admin"]);
 
 export default function Approvals() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const companyId = user?.company_id ?? null;
-  const isManager = user ? MANAGER_ROLES.has(user.app_role) : null;
+  // Module 3: the same two keys resolveApprovalRequest re-checks server-side,
+  // so a company_admin who denied their store_managers `Aprobaciones:resolve`
+  // no longer sees buttons the backend would refuse. `null` until the user
+  // loads, which the render below distinguishes from an outright `false`.
+  const canView = user ? can("Aprobaciones:view") : null;
+  const canResolve = user ? can("Aprobaciones:resolve") : false;
   const [ptos, setPtos] = useState([]);
   const [scheduleReqs, setScheduleReqs] = useState([]);
   const [extensions, setExtensions] = useState([]);
@@ -38,13 +46,13 @@ export default function Approvals() {
   }, []);
 
   useEffect(() => {
-    if (isManager) load(companyId);
-  }, [isManager, companyId, load]);
+    if (canView) load(companyId);
+  }, [canView, companyId, load]);
 
   // Actual authorization is enforced server-side by resolveApprovalRequest
-  // (it checks the caller's app_role before writing); this gate just keeps a
-  // non-manager from seeing pending requests or a confusing "approve" button
-  // that would be rejected by the backend.
+  // (app_role, tenant, the granular permission key, then the billing gate);
+  // these gates just keep a non-manager from seeing pending requests or a
+  // confusing "approve" button that the backend would reject.
   const resolve = async (entity, requestId, status) => {
     try {
       await base44.functions.invoke("resolveApprovalRequest", { entity, requestId, status });
@@ -57,7 +65,7 @@ export default function Approvals() {
   const resolveSchedule = (req, status) => resolve("ScheduleChangeRequest", req.id, status);
   const resolveExtension = (req, status) => resolve("ExtensionRequest", req.id, status);
 
-  if (isManager === false) {
+  if (canView === false) {
     return (
       <div className="p-8 max-w-4xl mx-auto">
         <p className="text-center text-muted-foreground text-sm mt-12">No tienes permiso para ver esta página.</p>
@@ -77,7 +85,7 @@ export default function Approvals() {
         <TabsContent value="pto">
           <div className="bg-card rounded-2xl border border-border divide-y divide-border mt-4">
             {ptos.map((p) => (
-              <Row
+              <Row canResolve={canResolve}
                 key={p.id}
                 title={`${p.employee_name} · ${p.type}`}
                 subtitle={`${p.start_date} a ${p.end_date} — ${p.reason || ""}`}
@@ -91,7 +99,7 @@ export default function Approvals() {
         <TabsContent value="schedule">
           <div className="bg-card rounded-2xl border border-border divide-y divide-border mt-4">
             {scheduleReqs.map((s) => (
-              <Row
+              <Row canResolve={canResolve}
                 key={s.id}
                 title={s.employee_name}
                 subtitle={s.reason || "Cambio de horario"}
@@ -105,7 +113,7 @@ export default function Approvals() {
         <TabsContent value="extension">
           <div className="bg-card rounded-2xl border border-border divide-y divide-border mt-4">
             {extensions.map((e) => (
-              <Row
+              <Row canResolve={canResolve}
                 key={e.id}
                 title={`${e.employee_name} · +${e.requested_minutes} min`}
                 subtitle={e.reason || ""}

@@ -22,6 +22,7 @@
 // privilege inviteUser itself requires.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 import { assertCompanyWritable } from './_billingGuard.ts';
+import { assertPermission } from './_permissions.ts';
 
 const MANAGER_ROLES = new Set(['company_admin', 'store_manager']);
 
@@ -62,6 +63,12 @@ Deno.serve(async (req) => {
     }
 
     const sr = base44.asServiceRole;
+    // Module 3: checked against the tenant the invite TARGETS (a super_admin
+    // may invite into any company), before inviteUser fires — a denied caller
+    // must not cause a real invitation email either.
+    const permBlock = await assertPermission(sr, user, targetCompanyId, 'Empleados:create');
+    if (permBlock) return Response.json({ error: permBlock.error, permission: permBlock.permission, message: permBlock.message }, { status: permBlock.status });
+
     const billingBlock = await assertCompanyWritable(sr, targetCompanyId, user.app_role);
     if (billingBlock) return Response.json({ error: billingBlock.error, message: billingBlock.message }, { status: billingBlock.status });
 

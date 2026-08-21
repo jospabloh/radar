@@ -52,7 +52,7 @@ export default function EmployeeProfile() {
     return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Cargando...</div>;
   }
 
-  const ROLE_LABEL = { company_admin: "Administrador", store_manager: "Gerente de tienda", employee: "Empleado" };
+  const ROLE_LABEL = ROLE_LABELS;
 
   return (
     <div className="min-h-screen bg-background">

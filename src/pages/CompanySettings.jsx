@@ -9,8 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { Download, AlertTriangle } from "lucide-react";
+import { usePermissions } from "@/lib/PermissionContext";
 
-const MANAGER_ROLES = new Set(["company_admin", "store_manager", "super_admin"]);
 
 const TIMEZONES = [
   "America/Mexico_City",
@@ -22,6 +22,7 @@ const TIMEZONES = [
 
 export default function CompanySettings() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [company, setCompany] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -145,7 +146,7 @@ export default function CompanySettings() {
         {saved && <p className="text-sm text-success text-center">Cambios guardados</p>}
       </div>
 
-      {MANAGER_ROLES.has(user?.app_role) && (
+      {can("Empresa:export_data") && (
         <div className="max-w-md mx-auto px-6 mt-6 bg-card rounded-2xl border border-border p-6 space-y-3">
           <div className="flex items-start gap-3">
             <Download className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -161,7 +162,7 @@ export default function CompanySettings() {
         </div>
       )}
 
-      {MANAGER_ROLES.has(user?.app_role) && (
+      {can("Empresa:request_deletion") && (
         <div className="max-w-md mx-auto px-6 mt-6 mb-6 bg-destructive/5 rounded-2xl border border-destructive/40 p-6 space-y-3">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />

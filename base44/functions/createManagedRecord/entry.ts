@@ -20,10 +20,18 @@
 // only gate).
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 import { assertCompanyWritable } from './_billingGuard.ts';
+import { assertPermission } from './_permissions.ts';
 
 const ENTITIES = new Set(['ScheduleChangeRequest', 'ShiftTemplate']);
 const DELETABLE_ENTITIES = new Set(['ShiftTemplate']);
 const MANAGER_ROLES = new Set(['company_admin', 'store_manager', 'super_admin']);
+// Which granular permission key gates each managed entity. ShiftTemplate is
+// company-wide configuration (admin-tier by default); proposing a schedule
+// change for someone else is day-to-day manager work.
+const ENTITY_PERMISSION: Record<string, string> = {
+  ScheduleChangeRequest: 'Empleados:propose_schedule',
+  ShiftTemplate: 'Horarios:manage',
+};
 
 Deno.serve(async (req) => {
   try {
@@ -52,6 +60,12 @@ Deno.serve(async (req) => {
       if (user.app_role !== 'super_admin' && record.company_id !== user.company_id) {
         return Response.json({ error: 'Forbidden' }, { status: 403 });
       }
+      // Module 3: the granular key for this entity, checked against the
+      // record's OWN tenant. ENTITY_PERMISSION keeps the mapping in one place
+      // so a new managed entity can't be added without choosing a key.
+      const deletePerm = await assertPermission(sr, user, record.company_id, ENTITY_PERMISSION[entity]);
+      if (deletePerm) return Response.json({ error: deletePerm.error, permission: deletePerm.permission, message: deletePerm.message }, { status: deletePerm.status });
+
       const deleteBlock = await assertCompanyWritable(sr, record.company_id, user.app_role);
       if (deleteBlock) return Response.json({ error: deleteBlock.error, message: deleteBlock.message }, { status: deleteBlock.status });
       await sr.entities[entity].delete(recordId);
@@ -61,6 +75,9 @@ Deno.serve(async (req) => {
     if (!data || typeof data !== 'object') {
       return Response.json({ error: 'data is required' }, { status: 400 });
     }
+
+    const permBlock = await assertPermission(sr, user, user.company_id, ENTITY_PERMISSION[entity]);
+    if (permBlock) return Response.json({ error: permBlock.error, permission: permBlock.permission, message: permBlock.message }, { status: permBlock.status });
 
     const createBlock = await assertCompanyWritable(sr, user.company_id, user.app_role);
     if (createBlock) return Response.json({ error: createBlock.error, message: createBlock.message }, { status: createBlock.status });

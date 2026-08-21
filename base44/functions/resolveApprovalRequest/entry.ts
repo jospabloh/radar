@@ -15,6 +15,7 @@
 // so those can't be triggered without also going through the manager check.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 import { assertCompanyWritable } from './_billingGuard.ts';
+import { assertPermission } from './_permissions.ts';
 
 const ENTITIES = new Set(['PTORequest', 'ScheduleChangeRequest', 'ExtensionRequest']);
 const STATUSES = new Set(['approved', 'rejected']);
@@ -47,6 +48,13 @@ Deno.serve(async (req) => {
     if (user.app_role !== 'super_admin' && record.company_id !== user.company_id) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    // Module 3: the granular key, re-checked here with the record's OWN tenant
+    // (never one from the body) so a company_admin who explicitly denied their
+    // store_managers this action is actually obeyed — MANAGER_ROLES above is
+    // the coarse role floor, not the whole answer.
+    const permBlock = await assertPermission(sr, user, record.company_id, 'Aprobaciones:resolve');
+    if (permBlock) return Response.json({ error: permBlock.error, permission: permBlock.permission, message: permBlock.message }, { status: permBlock.status });
 
     const billingBlock = await assertCompanyWritable(sr, record.company_id, user.app_role);
     if (billingBlock) return Response.json({ error: billingBlock.error, message: billingBlock.message }, { status: billingBlock.status });
