@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Clock } from "lucide-react";
 import EmployeeFormDialog from "@/components/employees/EmployeeFormDialog";
 import ScheduleChangeDialog from "@/components/employees/ScheduleChangeDialog";
+import { ROLE_LABELS } from "@/lib/rbac";
 
 // Labels come from the single role declaration (src/lib/rbac.js) — this file
 // used to carry its own copy, which had already drifted ("Store Manager" vs

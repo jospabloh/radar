@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { FileText, Upload } from "lucide-react";
+import { ROLE_LABELS } from "@/lib/rbac";
 
 export default function EmployeeProfile() {
   const { user } = useAuth();

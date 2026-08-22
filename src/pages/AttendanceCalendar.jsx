@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { startOfMonth, endOfMonth, eachDayOfInterval, format, addMonths, subMonths, getDay } from "date-fns";
 import { es } from "date-fns/locale";
+import { ROLES } from "@/lib/rbac";
 
 const WEEKDAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 

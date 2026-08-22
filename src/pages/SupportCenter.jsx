@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import { LifeBuoy, Search, Send, Loader2, Inbox, Sparkles } from "lucide-react";
 import { composeTicketBody } from "@/lib/aiIntake";
 import AiIntakeChat from "@/components/support/AiIntakeChat";
+import { isCompanyAdmin } from "@/lib/rbac";
 
 const STATUS_STYLE = {
   open: "bg-warning/10 text-warning",
