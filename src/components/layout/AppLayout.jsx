@@ -9,7 +9,6 @@ import {
   CalendarClock, AlertTriangle, Calendar, Bell,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import ThemeToggle from "@/components/ThemeToggle";
 import CompanyStatusBanner from "@/components/layout/CompanyStatusBanner";
 import { ROLE_LABELS, ROLES, isSuperAdmin } from "@/lib/rbac";
 
@@ -98,7 +97,6 @@ function UserFooter({ user }) {
           <p className="truncate text-xs text-muted-foreground">{ROLE_LABELS[user?.app_role] || ""}</p>
         </div>
       </div>
-      <ThemeToggle showLabel />
       <button
         onClick={() => base44.auth.logout("/login")}
         className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground w-full transition-colors"
@@ -203,9 +201,6 @@ export default function AppLayout() {
           <span className="text-base font-bold tracking-tight text-foreground">
             RADAR<span className="text-primary">.</span>
           </span>
-          <div className="ml-auto">
-            <ThemeToggle />
-          </div>
         </header>
 
         <main className="flex-1 overflow-auto">
