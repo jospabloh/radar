@@ -417,3 +417,109 @@ portafolio llegó a desplegar eran **sintácticamente válidos**: la rama de rol
 motor descartaba la cláusula hermana de `user_condition`, los campos de licencia
 escribibles por el propio inquilino en puntos y rumbo, y el `PermissionProfile`
 que ningún RLS puede consultar porque vive en otra fila.
+
+### Resultado — 2026-08-23, contra el esquema desplegado
+
+Contra `list_entity_schemas` (appId `6a455cf7813a409378d2af35`) y las 11
+funciones.
+
+**No hay cruce entre inquilinos** — no puede haberlo: **no hay inquilinos.** El
+estado vivo es **0 `Company`** y **1 `User`** (el dueño, `super_admin`). Esa
+tabla vacía no es que RADAR sea nuevo: es el `entities push` de FlowFin del
+2026-08-21 que borró el modelo de datos (ver `acacia-app-standard` →
+`docs/incidents.md`). Y esa tabla vacía resultó ser el hallazgo.
+
+#### Lo urgente: la tabla vacía reabrió la puerta del fundador
+
+`completeOnboarding` tiene tres casos, y el segundo dice —lo decía— esto:
+
+```js
+const companies = await sr.entities.Company.list();
+if (companies.length === 0) {
+  await sr.entities.User.update(user.id, { app_role: 'super_admin' });
+```
+
+La sección de arriba de este mismo archivo afirmaba que ese camino está
+«permanentemente muerto» en cuanto existe la primera empresa. Era cierto. **El
+borrado del 21 de agosto lo resucitó**: `Company` volvió a estar vacía, así que
+la condición que debía cumplirse una sola vez en la vida de la app volvió a
+cumplirse.
+
+La cadena estaba completa y viva:
+
+1. `src/pages/Register.jsx:31` — alta libre con `base44.auth.register`;
+2. la app está en visibilidad **pública** desde el 2026-08-22 (se cambió para
+   que la suite de humo pudiera alcanzarla — o sea, **la puerta la abrí yo**, y
+   conviene que quede escrito así y no en pasiva);
+3. `Company.list()` vacía → `app_role: 'super_admin'`;
+4. `super_admin` salta **todas** las comprobaciones de permiso y facturación de
+   este repo.
+
+Es decir: el siguiente desconocido que se registrara en RADAR se llevaba el rol
+de plataforma. Hoy no hay datos que robar —cero empresas— pero quedaría sentado
+como administrador cuando entre el primer cliente real.
+
+**Arreglado en este mismo commit**: la rama exige ahora, además de la tabla
+vacía, que el solicitante sea `PLATFORM_OWNER_EMAIL`, y **falla cerrado** si el
+secreto no está puesto (un env sin configurar no puede ser una segunda entrada).
+La lección, que vale para todo el portafolio: **"no existe ningún X" no es
+prueba de "esta app acaba de nacer"** en cuanto un borrado accidental es
+posible. Una condición de arranque necesita una segunda mitad que sólo el dueño
+pueda satisfacer.
+
+**Esto no queda hecho hasta desplegarlo.** `npm run deploy` — mergear no
+despliega. Mientras tanto, `base44 visibility private` cierra el paso 2 en un
+comando.
+
+#### El otro hallazgo: `PermissionProfile` no pide rol
+
+```json
+"update": {"$or":[{"data.company_id":"{{user.data.company_id}}"},{"user_condition":{"role":"admin"}}]}
+```
+
+Sin mitad de rol, igual que en stockflow. Un `employee` o un `store_manager`
+puede reescribir el perfil de su propia empresa y concederse cualquier clave — y
+las cinco funciones que re-comprueban `assertPermission` leen exactamente esa
+fila (`_shared/_permissions.ts:55`). El trabajo del módulo 3 del 21 de agosto
+está bien hecho; su entrada la controla el comprobado. Latente mientras no haya
+empresas ni empleados. `kitchops` resuelve lo mismo con
+`$and[business_id, role: business_admin]`.
+
+### Lo que está bien, y es bastante
+
+- **`Company` sí tiene candados de campo**: `tier`, `max_employees`,
+  `license_expiry` y `status`, los cuatro a `rls.write: {role: admin}`. Es de las
+  pocas apps del portafolio que trae el módulo 1 resuelto a nivel de campo. La
+  regla de `update` concede la fila entera a cualquier miembro, pero con esos
+  cuatro bloqueados lo que queda editable es exactamente lo que
+  `CompanySettings.jsx` edita (nombre, zona horaria, `whatsapp_enabled`).
+- **`Company.delete` es sólo `role: admin`.** Un administrador de empresa no
+  puede borrar la suya: por eso el módulo 7 encamina la baja por un
+  `SupportTicket`. Correcto, y mejor que stockflow y kitchops, donde cualquier
+  miembro borra el inquilino.
+- **`User` lleva los cuatro candados**: `role`, `app_role`, `company_id` y
+  `employee_id`. La descripción de `employee_id` explica **por qué** existe: para
+  que las escrituras de autoservicio exijan
+  `data.employee_id == {{user.data.employee_id}}` en vez de fiarse de un id que
+  mande el cliente.
+- **`AttendanceRecord.create/update` exigen `$and[company_id, employee_id]`** —
+  un empleado sólo escribe su propio registro, y dentro de su empresa. Es la RLS
+  de autoservicio más fuerte del portafolio: lo fácil habría sido `created_by_id`;
+  esto se apoya en un espejo bloqueado a nivel de campo, que sobrevive al vínculo.
+- **`createEmployee`** sólo acepta `company_id` del cuerpo si el solicitante es
+  `super_admin`; para todos los demás es `user.company_id`. Y comprueba el
+  permiso **contra la empresa destino y antes de que salga la invitación**, para
+  que un solicitante denegado no provoque un correo real.
+- **`exportCompanyData`** deriva `companyId` de `auth.me()` y filtra las ocho
+  entidades por él.
+- **update/delete comparan contra el registro almacenado** en
+  `updateAttendanceRecord`, `resolveApprovalRequest`, `createManagedRecord` y
+  `updateSupportTicket`.
+
+### Lo que no pude verificar
+
+Todo lo anterior contra datos reales, porque no hay ninguno. Con 0 empresas y
+1 usuario no existe una segunda empresa a la que cruzar, ni un `store_manager`
+al que restringir. Esta pasada es lectura de código y del esquema desplegado, y
+la única afirmación que se apoya en datos vivos es la que importa: `Company`
+está vacía, y por eso la puerta del fundador estaba abierta.
