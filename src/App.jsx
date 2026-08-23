@@ -39,7 +39,7 @@ import IncidentPanel from '@/pages/IncidentPanel';
 // Add page imports here
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -55,9 +55,19 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
+      // Send the visitor to RADAR's own login, not Base44's.
+      //
+      // This used to call navigateToLogin() (base44.auth.redirectToLogin),
+      // which navigates away to the platform-served login page. RADAR has its
+      // own on-brand login at `/login` — the two-column AuthLayout the whole
+      // portfolio shares — but this branch runs BEFORE <Routes> ever renders,
+      // so the browser left the app before that route could match and the page
+      // was never seen. Same bug jospabloh/puntos had (fixed 2026-08-23) and
+      // jospabloh/ctrlhq before it; both CLAUDE.md files document it.
+      //
+      // ProtectedRoute below already bounces unauthenticated users to /login;
+      // this makes the error path agree with it instead of leaving the app.
+      return <Navigate to="/login" replace />;
     }
   }
 
