@@ -21,10 +21,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 //      `company_id` (this is the invitation-equivalent: an admin must have
 //      created the Employee row beforehand, so the grant is bounded by
 //      whatever role/company that admin already assigned).
-//   2) No Employee match AND no Company exists yet in the whole app -> this is
-//      the very first user ever, i.e. the founder creating the first company.
-//      They're promoted to `super_admin` (mirrors the original client check
-//      `companies.length === 0`).
+//   2) No Employee match AND no Company exists yet in the whole app AND the
+//      caller is PLATFORM_OWNER_EMAIL -> the founder creating the first
+//      company. They're promoted to `super_admin`. The owner-email half is not
+//      belt-and-braces: an empty Company table stopped meaning "brand new app"
+//      the day a misdeploy wiped one. See the comment at the branch itself.
 //   3) Neither case applies -> 404, same "not_found" outcome the client used
 //      to show (contact your admin for access).
 //
@@ -82,8 +83,25 @@ Deno.serve(async (req) => {
     // founder flow (first user ever, about to create the first company on the
     // next screen). Re-check with the service role (never trust a client claim
     // of "no companies exist").
+    //
+    // "No Company exists" is NOT on its own proof that the caller is the
+    // founder, and on 2026-08-21 that stopped being theoretical: the FlowFin
+    // misdeploy (see acacia-app-standard -> docs/incidents.md) ran an
+    // `entities push` against this app and wiped the data model, Company rows
+    // included. A condition that was meant to be true exactly once, at the
+    // very beginning of the app's life, became true again — so the next
+    // stranger to register would have been handed `super_admin`, which
+    // bypasses every permission and billing check in this repo.
+    //
+    // So the emptiness of Company is now only half the test. The caller must
+    // also BE the platform owner. Fail closed when the secret is unset: an
+    // unconfigured env var must not be a second way into this branch.
     const companies = await sr.entities.Company.list();
     if (companies.length === 0) {
+      const platformOwnerEmail = Deno.env.get('PLATFORM_OWNER_EMAIL');
+      if (!platformOwnerEmail || user.email !== platformOwnerEmail) {
+        return Response.json({ error: 'not_found' }, { status: 404 });
+      }
       await sr.entities.User.update(user.id, { app_role: 'super_admin' });
       return Response.json({ success: true, app_role: 'super_admin', founder: true });
     }
