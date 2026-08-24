@@ -5,9 +5,23 @@
   // src/lib/permissionRegistry.js — this is deliberately sparse, so changing a
   // default in the registry still reaches every tenant that never overrode it.
   //
-  // Writes are RLS-scoped to the caller's own company, so a tenant can only
-  // ever change its OWN roles' access even if the client is bypassed. Note
-  // that `read` is company-wide on purpose: PermissionContext.jsx has to load
+  // SECURITY (module 14 audit, closed here): create/update/delete were
+  // previously company-scoped with no app_role check — the same shape of gap
+  // Employee.jsonc and ShiftTemplate.jsonc document above their own RLS
+  // blocks. Any employee or store_manager could rewrite their own company's
+  // PermissionProfile row and grant themselves any key that the five
+  // server-side Safe functions (_shared/_permissions.ts) then trust
+  // unconditionally. RLS's `user_condition` can only check Base44's platform
+  // `role`, never the custom `app_role` field, so — same as those two
+  // siblings — create/update/delete are now service-role only. There is no
+  // client write path today (no UI calls entities.PermissionProfile.create/
+  // update; PermissionContext.jsx only reads), so this closes the gap
+  // without breaking any caller; a future "edit role overrides" feature must
+  // go through a service-role function that checks the caller is
+  // company_admin (or super_admin) for their own company_id first, the same
+  // shape as createEmployee.
+  //
+  // `read` stays company-wide on purpose: PermissionContext.jsx has to load
   // the caller's own role overrides at mount, and every backend Safe function
   // reads the row for the acting role before allowing a write.
   "name": "PermissionProfile",
@@ -42,22 +56,13 @@
       ]
     },
     "create": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "update": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     },
     "delete": {
-      "$or": [
-        { "data.company_id": "{{user.data.company_id}}" },
-        { "user_condition": { "role": "admin" } }
-      ]
+      "user_condition": { "role": "admin" }
     }
   }
 }

@@ -6,8 +6,11 @@
  *
  *   npm run validate:rls
  *
- * The actual rules live in scripts/lib/entity-rls-rules.mjs and are shared
- * with the Deno test (base44/tests/entity_rls_test.ts) so CI enforces them too.
+ * The actual rules live in scripts/lib/entity-rls-rules.mjs. There is no
+ * Deno test mirroring this in base44/ and no Deno step in .github/workflows/
+ * ci.yml — this script (wired into `npm run lint`) is the only place these
+ * rules run. Don't claim Deno coverage that doesn't exist; add it here and
+ * to CI together if it's ever built.
  */
 
 import process from "node:process";

@@ -9,6 +9,80 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.4] — 2026-08-24
+
+Scheduled RADAR audit routine re-run. Modules 2/3/11/12/14/15 had already
+shipped and merged to `main` between 2026-08-21 and 2026-08-23 without a
+version bump or changelog entry — this release catches the changelog up to
+what's actually deployed, plus one new fix found in this pass.
+
+### Security
+
+- **`PermissionProfile` RLS had no role check.** `create`/`update`/`delete`
+  were scoped to the caller's own company but not to their `app_role` — any
+  `employee` or `store_manager` could rewrite their own company's permission
+  overrides and grant themselves any key the five Safe functions
+  (`_shared/_permissions.ts`) then trust. Flagged as latent in the
+  2026-08-22 multi-tenant isolation audit (module 14); fixed here the same
+  way `Employee.jsonc` and `ShiftTemplate.jsonc` already close this shape of
+  gap — RLS's `user_condition` can't check the custom `app_role` field, so
+  writes are now service-role only. No client write path exists yet (only
+  reads), so this closes the gap without breaking anything.
+- **Closed the founder-bootstrap reopening (module 14, 2026-08-23).** The
+  2026-08-21 cross-app deploy accident (see module 11) wiped `Company` back
+  to empty, which silently re-armed `completeOnboarding`'s one-time "first
+  company ever" bootstrap path — the next unknown signup would have been
+  handed `super_admin`. Now requires `PLATFORM_OWNER_EMAIL` in addition to
+  the empty table, and fails closed if that env var isn't set.
+- **Bridge signatures are now per-app (module 15, 2026-08-23).** The
+  Mission Control bridge previously signed/verified with one secret shared
+  across the whole ACACIA portfolio, so any app could forge a ticket
+  claiming to be another. `acaciaControl`/`notifyTicketCreated` now
+  derive/verify a per-app key (`HMAC(master, "acacia.app.v1." + slug)`),
+  accepting the legacy master during the portfolio-wide migration window.
+- **Roles and permissions were never centrally declared (modules 2/3,
+  2026-08-21).** Four roles existed as scattered string literals with three
+  independently-drifted label maps; there was no way to grant a
+  `store_manager` PTO-approval without also granting company data export.
+  New `src/lib/rbac.js` (single role source) and
+  `src/lib/permissionRegistry.js` + `PermissionProfile` overrides (13 keys,
+  re-checked server-side in all five write/export functions) replace both.
+
+### Changed
+
+- **Deploy tooling now guards against the app-id mixup that wiped this
+  repo's data (module 11).** `npm run deploy`/`deploy:site`/`deploy:entities`
+  wrap the Base44 CLI and refuse a mismatched `--app-id`; `deploy:entities`
+  prints the target app's name and entity count before its confirmation
+  prompt. `npm run functions:audit` lists which functions still have
+  in-repo callers before any consolidation.
+- **Theme switcher gained a "Sistema" (follow OS) option (module 12).** The
+  old two-state light/dark toggle in the sidebar footer and mobile header
+  was replaced by the shared portfolio corner control (light/dark/system).
+- **`npm run test:smoke` added**, run in CI on demand and on a daily cron
+  against the deployed site — verifies the served `<title>`, first-paint
+  theme, and that the corner theme switcher stays uncovered at three
+  breakpoints. Doesn't run in this sandbox (the domains aren't reachable
+  through the dev proxy) or in the normal PR pipeline.
+
+### Fixed
+
+- Stale doc comment in `scripts/validate-entity-rls.mjs` claimed CI ran a
+  mirrored Deno test (`base44/tests/entity_rls_test.ts`) that doesn't exist
+  in this repo — corrected to say what actually enforces these rules today
+  (this script, wired into `npm run lint`).
+
+### Not verified
+
+- The `PermissionProfile` RLS fix and the founder-bootstrap/bridge-key fixes
+  above are reviewed by hand against the deployed schema/functions info
+  recorded in `CLAUDE.md`'s module 14/15 write-ups; this pass didn't
+  re-run a live cross-tenant check (there's still only 0 `Company` rows in
+  the live schema as of the last audit, so there's no second tenant to test
+  against). `npm run deploy:entities` has not been re-run for the RLS
+  change in this pass — the `.jsonc` change alone doesn't reach the
+  deployed backend.
+
 ## [0.1.3] — 2026-08-18
 
 Portfolio-standard audit pass (`jospabloh/acacia-app-standard`), modules 1/3/6/7.
