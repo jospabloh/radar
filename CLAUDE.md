@@ -588,3 +588,71 @@ Lo que de verdad está bloqueado es `deno.land` y `jsr.io`, así que un test que
 importe de ahí no resuelve; uno que no importe nada corre igual que en CI. Es la
 misma lección que el `000` del proxy en Mission Control: **que una vía esté
 bloqueada no significa que la pregunta no tenga respuesta.**
+
+## Scheduled audit routine — 2026-08-24
+
+Re-run of the standing 16-point audit routine. No open PRs, no stale audit
+branches, working tree already clean on `main` at the start of this pass.
+
+**Found and fixed — `PermissionProfile` RLS had no role check.** The
+2026-08-22 module-14 audit above flagged this and left it unfixed ("latente
+mientras no haya empresas ni empleados") because there was no live tenant to
+demonstrate it against. It's a real gap regardless of live data: `create`/
+`update`/`delete` were scoped to `data.company_id` only, so any `employee`
+or `store_manager` could rewrite their own company's `PermissionProfile`
+row and grant themselves any key — the five Safe functions
+(`_shared/_permissions.ts`) trust that row unconditionally once a
+`company_id` match exists. Closed the same way `Employee.jsonc` and
+`ShiftTemplate.jsonc` already close this exact shape of gap: RLS's
+`user_condition` can only check Base44's platform `role`, never the custom
+`app_role` field, so create/update/delete are now service-role only. No
+client code calls `entities.PermissionProfile.create`/`update` today (only
+`PermissionContext.jsx`'s read), so nothing breaks; a future per-role
+override UI needs a service-role function that checks the caller is
+`company_admin`/`super_admin` for their own `company_id`, the same shape as
+`createEmployee`.
+
+**Found and fixed — stale doc comment.** `scripts/validate-entity-rls.mjs`
+claimed its rules were "shared with the Deno test
+(`base44/tests/entity_rls_test.ts`) so CI enforces them too" — that file
+doesn't exist and `.github/workflows/ci.yml` has no Deno step. Corrected to
+say what actually runs these rules (this script alone, via `npm run lint`).
+
+**Found and fixed — changelog/version drift.** Modules 2, 3, 11, 12, 14 and
+15 above all shipped and merged to `main` between 2026-08-21 and 2026-08-23
+(confirmed via `git log`, all PRs merged, no open PRs) without a version
+bump or `CHANGELOG.md`/`ChangeLog.jsx` entry — `package.json` and
+`src/lib/appConfig.js` were still at `0.1.3` / 2026-08-18. Bumped to
+`0.1.4` / 2026-08-24 with a changelog entry covering all six.
+
+**Everything else checked, nothing further to fix:**
+- Secrets: `git grep` for common key/token patterns and a review of `.env*`
+  handling found nothing committed; all secrets are read from environment
+  variables, consistent with every other module's write-up above.
+- `npm audit --audit-level=high`: 0 vulnerabilities.
+- `npm run lint` (eslint + `validate:rls` 15 entities/13 tenant-scoped +
+  `validate:permissions` 13 keys/5 synced copies + `validate:functions` 10
+  endpoints): all pass, including after this pass's changes.
+- `npm run build`: passes.
+- `npm run typecheck` (informational, non-blocking per `ci.yml`): 252
+  pre-existing errors, up from the 236 recorded 2026-08-03 — expected
+  drift from three weeks of real feature work, not a regression introduced
+  here. Still out of scope to fix in one pass (see `ci.yml`'s own header
+  comment); tracked, not silently ignored.
+- `src/pages/UserManual.jsx` already exists, is tenant-neutral, and is
+  wired into `App.jsx` at `/manual-usuario` — module 12 of the task
+  checklist ("create minimal version if missing") had nothing to do.
+- No automated test suite exists for `base44/functions/*.ts` beyond the
+  validator scripts above (`base44/tests/` doesn't exist) — this matches
+  what modules 3, 14 and 15 already documented, not a new gap.
+
+**Not verified — same limits as every prior module-14/15 pass.** The
+`PermissionProfile` RLS fix is a `.jsonc` change only; per module 11 above,
+it does not reach the deployed backend until `npm run deploy:entities` is
+run by hand, and no live second tenant exists to demonstrate the fixed
+behavior against (the schema still shows 0 `Company` rows as of the last
+audit read). UI/UX/cross-device/performance review, live UAT, and email
+deliverability were not exercised in this pass — this sandbox has no
+browser session against a live deploy and no second tenant to test
+role-permission boundaries with; the same honesty-over-false-coverage
+principle module 14 states applies here.
