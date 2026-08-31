@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ScheduleEditor from "@/components/schedule/ScheduleEditor";
 import { toast } from "@/components/ui/use-toast";
 import { defaultSchedule } from "@/lib/schedule";
+import { ROLES, ROLE_LABELS } from "@/lib/rbac";
 
 export default function EmployeeFormDialog({ open, onOpenChange, onCreated }) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState("employee");
+  const [role, setRole] = useState(ROLES.EMPLOYEE);
   const [schedule, setSchedule] = useState(defaultSchedule());
   const [saving, setSaving] = useState(false);
 
@@ -27,7 +28,7 @@ export default function EmployeeFormDialog({ open, onOpenChange, onCreated }) {
       });
       setEmail("");
       setFullName("");
-      setRole("employee");
+      setRole(ROLES.EMPLOYEE);
       setSchedule(defaultSchedule());
       onOpenChange(false);
       onCreated();
@@ -50,8 +51,8 @@ export default function EmployeeFormDialog({ open, onOpenChange, onCreated }) {
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="employee">Empleado</SelectItem>
-                <SelectItem value="store_manager">Store Manager</SelectItem>
+                <SelectItem value={ROLES.EMPLOYEE}>{ROLE_LABELS[ROLES.EMPLOYEE]}</SelectItem>
+                <SelectItem value={ROLES.STORE_MANAGER}>{ROLE_LABELS[ROLES.STORE_MANAGER]}</SelectItem>
               </SelectContent>
             </Select>
           </div>

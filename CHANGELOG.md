@@ -9,6 +9,56 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.5] — 2026-08-31
+
+Scheduled RADAR audit routine re-run (16-point pass). No open PRs or stale
+audit branches at the start; no functional code had changed since the
+2026-08-24 pass (only two automated `Update base44 packages` commits).
+
+### Fixed
+
+- **`EmployeeFormDialog.jsx` role dropdown still hardcoded "Store Manager"
+  in English.** Module 2 (2026-08-21) centralized role labels in
+  `src/lib/rbac.js` specifically to kill this exact drift, and fixed it in
+  `Employees.jsx`'s employee list — but missed this component, the actual
+  "create employee" modal `Employees.jsx` renders. Every other role label in
+  the app already reads "Gerente de tienda"; this was the one place a
+  company admin creating an employee saw the stale English string. Now
+  imports `ROLES`/`ROLE_LABELS` from `rbac.js` instead of a local literal.
+
+### Verified (previously open items, now confirmed against the live backend)
+
+- `PermissionProfile`'s RLS fix (service-role-only `create`/`update`/`delete`,
+  shipped 2026-08-24) is live in the deployed entity schema — the
+  2026-08-24 entry could only confirm this in the repo `.jsonc`.
+- `completeOnboarding`'s founder-door fix (`PLATFORM_OWNER_EMAIL` check,
+  module 14) is live and matches the repo, read directly from the deployed
+  function source.
+- The module-15 bridge's derived-key signing was exercised directly (not
+  just read): the documented test vector matches, a body signed as one app
+  is rejected when verified as another, and a body signed and verified as
+  the same app passes — with `ACCEPT_LEGACY_MASTER` confirmed `false`.
+
+### Checked, nothing further to fix
+
+`npm run lint` (eslint + RLS/permissions/functions validators), `npm run
+build`, `npm audit --audit-level=high` (0 vulnerabilities), a secrets scan,
+a `_billingGuard.ts` drift check across all 4 copies, and a spot RLS review
+of `ExtensionRequest`/`PTORequest`/`ScheduleChangeRequest`/`Holiday` all
+came back clean.
+
+### Not verified
+
+Live tenant/company data still doesn't exist (0 `Company` rows, 1 `User` —
+the platform owner) so role-boundary enforcement still can't be exercised
+against real data, same limitation every module-14/15 pass has recorded.
+The app's public/private visibility setting (flagged as a real risk in the
+2026-08-22 module-14 finding) could not be re-checked this pass — the
+Base44 CLI call inside the sandbox timed out twice; this needs a manual
+check, not a rerun. UI/UX/cross-device/performance review, live UAT, and
+email deliverability were not exercised — no browser session against a
+live deploy exists in this environment.
+
 ## [0.1.4] — 2026-08-24
 
 Scheduled RADAR audit routine re-run. Modules 2/3/11/12/14/15 had already
