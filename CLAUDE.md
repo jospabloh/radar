@@ -678,3 +678,72 @@ deliverability were not exercised in this pass — this sandbox has no
 browser session against a live deploy and no second tenant to test
 role-permission boundaries with; the same honesty-over-false-coverage
 principle module 14 states applies here.
+
+## Scheduled audit routine — 2026-08-31
+
+Re-run of the standing 16-point audit routine. No open PRs, no stale audit
+branches. No functional code had changed since the 2026-08-24 pass — `git
+log` showed only two automated `Update base44 packages` commits — so this
+pass leaned on re-verification (some of it newly possible) over re-reading
+code that hadn't moved.
+
+**Found and fixed — one real module-2 miss.**
+`src/components/employees/EmployeeFormDialog.jsx` (the "create employee"
+modal `Employees.jsx` renders) still hardcoded `<SelectItem
+value="store_manager">Store Manager</SelectItem>` — the exact drifted,
+English-language label module 2's own write-up above names as the bug it
+was created to kill, in the one component that write-up didn't touch.
+`Employees.jsx` itself correctly imports `ROLE_LABELS` for the employee
+list; this modal never imported `rbac.js` at all. Fixed by importing
+`ROLES`/`ROLE_LABELS` and using them for both the option values and the
+labels. Cosmetic/consistency, not a security issue — the value sent to
+`createEmployee` was already the correct string either way.
+
+**Turned three "not verified" items from 2026-08-2x passes into verified
+ones**, now that the Base44 MCP tools in this environment can read the
+live app directly instead of only the repo:
+
+- `PermissionProfile`'s RLS fix (2026-08-24: service-role-only
+  `create`/`update`/`delete`) — confirmed **deployed**, via
+  `list_entity_schemas` against the live schema. The 2026-08-24 entry above
+  could only confirm the repo `.jsonc`.
+- `completeOnboarding`'s founder-door fix (module 14: the
+  `PLATFORM_OWNER_EMAIL` check) — confirmed **deployed** and byte-matching
+  the repo, by reading the live function source directly from the app's
+  sandbox.
+- The module-15 bridge's derived-key behavior — previously "reviewed by
+  hand" at type-check time only. This pass actually ran it: downloaded
+  `deno` (per the note two sections up), imported `_acaciaSign.ts` and
+  exercised it directly. The documented test vector
+  (`deriveAppKey("test-master", "puntos")`) matches; a body signed as
+  `"otra"` is rejected when verified as `"radar"`; a body signed and
+  verified as the same slug passes; `ACCEPT_LEGACY_MASTER` is confirmed
+  `false` in the deployed file. Also ran `deno check` on every
+  `base44/functions/*/entry.ts` — no syntax errors, only the same category
+  of implicit-`any`/loose-SDK-typing noise `npm run typecheck` already
+  tracks as informational, nothing newly load-bearing.
+
+**Everything else checked, nothing further to fix:** secrets scan clean;
+`npm run lint` (eslint + all three validators) and `npm run build` pass;
+`npm audit --audit-level=high` — 0 vulnerabilities; all four
+`_billingGuard.ts` copies still byte-identical (checked via `md5sum`, no
+generator/validator exists for this one — same manual-parity note the
+module-3 write-up already makes); a spot RLS re-read of
+`ExtensionRequest`/`PTORequest`/`ScheduleChangeRequest`/`Holiday` (not
+individually named in prior passes) shows the same tenant-scoped-read,
+admin-or-self-scoped-write shape as everything module 4 already covers.
+`npm run functions:audit` — still 10 endpoints in use, `attendanceMonitor`
+still the one `REVISAR EN PANEL` entry, unchanged from prior audits.
+
+**Not verified.** Live data is unchanged: 0 `Company` rows, 1 `User` (the
+platform owner) — still no second tenant to exercise role-boundary
+enforcement against. The app's public/private visibility — flagged as a
+real, still-relevant risk in the 2026-08-22 module-14 write-up ("la app
+está en visibilidad pública desde el 2026-08-22") — could not be
+re-checked this pass: the Base44 CLI, run inside the app's own sandbox via
+MCP, timed out twice on `auth pull` and on `dashboard --help`. That's a
+tool limit in this environment, not a "checked and it's fine" — worth a
+manual look in the Base44 dashboard rather than assuming either state.
+UI/UX/cross-device/performance review, live UAT, and email deliverability
+were not exercised — no browser session against a live deploy exists here,
+same limitation every prior pass has recorded.
