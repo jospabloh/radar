@@ -9,6 +9,28 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.6] — 2026-09-07
+
+Scheduled RADAR audit routine re-run. The prior pass's PR (#35, opened
+2026-08-31) had sat open a week with a failed CI check and no follow-up —
+closed out this pass rather than left for the next one.
+
+### Fixed
+
+- **4 dependency vulnerabilities** (`npm audit --audit-level=high`: 1 high,
+  2 moderate, 1 low) that appeared since the 2026-08-31 pass —
+  `browserslist`, `fflate`, `postcss-selector-parser`, `@humanfs/node`, all
+  transitive build-tooling dependencies. Resolved via `npm audit fix`
+  within existing semver ranges; only `package-lock.json` changed, no
+  application code touched.
+
+### Process
+
+- PR #35's CI failure from 2026-08-31 could not be root-caused directly
+  (its Actions logs had already expired), but lint/build reproduced clean
+  locally on the unmodified branch — consistent with a stale/flaky run.
+  Merged latest `main` into it and re-verified before merging.
+
 ## [0.1.5] — 2026-08-31
 
 Scheduled RADAR audit routine re-run (16-point pass). No open PRs or stale
