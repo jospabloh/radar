@@ -747,3 +747,78 @@ manual look in the Base44 dashboard rather than assuming either state.
 UI/UX/cross-device/performance review, live UAT, and email deliverability
 were not exercised — no browser session against a live deploy exists here,
 same limitation every prior pass has recorded.
+
+## Scheduled audit routine — 2026-09-07
+
+**Found and fixed — the 2026-08-31 audit PR (#35) had sat open, unmerged,
+for a week.** Pre-flight inventory (this routine's own first step) turned
+up an open, non-draft PR with a single failed CI check and no comment or
+follow-up since 2026-08-31T07:40Z. That pass's own write-up above never
+mentions expecting a delay — "CI result: will report once this PR's checks
+run" was left unresolved. The prior pass's session ended without staying to
+confirm CI, and no later scheduled run picked the branch back up until now.
+**Lesson for this routine specifically: opening a PR is not the end of a
+pass — confirm CI on it (or explicitly hand off the wait) before finishing.**
+
+The branch's original CI failure couldn't be root-caused directly — GitHub
+had already expired the job's log (404, 7 days old). Checked out the branch
+and reproduced `npm run lint`/`npm run build` locally on the *unmodified*
+commit: both passed clean, which points at a stale/flaky run rather than a
+real regression in that PR's content (a stale-role-label fix + doc updates,
+nothing touching build/lint surface).
+
+**Found and fixed — 4 new dependency vulnerabilities.** Bringing the branch
+up to date with `main` and re-running `npm audit --audit-level=high` (which
+had read 0 vulnerabilities on 2026-08-24 and 2026-08-31) now showed 4: 1
+high (`browserslist`, GHSA-c83g-rgw3-j3cx + GHSA-73wf-gq98-2v4g — unbounded
+cache growth / prototype-write crash), 2 moderate (`fflate`
+GHSA-px8p-9vwx-vf98, `postcss-selector-parser` GHSA-w9m9-85wc-3x92), 1 low
+(`@humanfs/node` GHSA-p498-v437-472g). All four are transitive build-tooling
+dependencies (via vite/eslint/postcss chains), not runtime app code — no
+attacker-reachable surface in the deployed app itself, but real advisories
+against packages the CI pipeline and dev environment both run. `npm audit
+fix` resolved all four within existing semver ranges (`package-lock.json`
+only); re-verified `npm run lint` and `npm run build` after. Same fix
+applied independently on both PR #35's branch (merged) and this pass's own
+`main`-based branch, since `main` itself had the same exposure until #35
+merged.
+
+**PR #35 merged** (squash, after this pass's fix landed and CI went green)
+rather than left open a second time — closing the loop the prior pass
+started. Version bumped `0.1.5` → `0.1.6` here for this pass's own fix;
+`0.1.5` itself (role-label fix + deploy verification) shipped as part of
+that same merge.
+
+**Everything else re-checked, nothing further found:** secrets scan (`git
+grep` for key/token/secret/password literals) clean; no `.env*` committed;
+`npm run lint` (eslint + `validate:rls` 15/13 + `validate:permissions`
+13/5 + `validate:functions` 10 endpoints) and `npm run build` pass on the
+final branch state; `npm run typecheck` — 252 errors, unchanged from
+2026-08-24 (no new drift); `npm run functions:audit` — 10 endpoints,
+`attendanceMonitor` still the sole `REVISAR EN PANEL` entry, unchanged.
+The other three `claude/*` branches this pass's pre-flight inventory
+flagged as candidates ("apps-rls-security-audit", "audit-email-reminders",
+"radar-audit-blockers") all turned out to be heads of long-since-merged or
+-closed PRs (#6, #8, #9, #10, #12) — stale leftover branches, not
+unresolved work; left alone (deleting merged branches is routine repo
+hygiene, not an audit finding).
+
+**Not verified — carried forward, now three passes running.** This
+session, like 2026-08-31's, had no authenticated Base44 access, so none of
+the module-14/15 live-backend checks (schema state, deployed function
+source, app visibility) could be re-run. In particular: **the app's
+public/private visibility, flagged as an open risk since the 2026-08-22
+module-14 write-up ("la app está en visibilidad pública desde el
+2026-08-22") and explicitly attempted-and-failed to re-check on
+2026-08-31 (Base44 CLI timeout), still has not been re-confirmed either
+way.** The founder-door bug that visibility setting exposed is fixed
+(`PLATFORM_OWNER_EMAIL` check, module 14) and confirmed deployed as of
+2026-08-31, so the acute risk is closed even if the app is still public —
+but "still public with no self-serve product behind it" is its own,
+lower-grade standing gap (unwanted signups, unnecessary attack surface)
+that nobody has actually looked at in two weeks. Worth a direct manual
+check in the Base44 dashboard rather than another scheduled pass assuming
+either state. Live tenant data is otherwise unchanged (0 `Company` rows,
+1 `User`). UI/UX/cross-device/performance review, live UAT, and email
+deliverability were not exercised, same limitation every prior pass has
+recorded.
