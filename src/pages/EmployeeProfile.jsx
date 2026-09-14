@@ -12,6 +12,7 @@ export default function EmployeeProfile() {
   const [employee, setEmployee] = useState(null);
   const [docs, setDocs] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [openingDocId, setOpeningDocId] = useState(null);
 
   const loadDocs = useCallback(async (empId) => {
     const list = await base44.entities.EmployeeDocument.filter({ employee_id: empId }, "-created_date");
@@ -33,12 +34,18 @@ export default function EmployeeProfile() {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Private storage, not UploadFile: these are HR documents (IDs,
+      // contracts) — UploadFile's public URL would be reachable by anyone
+      // who ever saw it (browser history, a shared screen, a forwarded
+      // link), regardless of the EmployeeDocument row's own RLS. The stored
+      // file_uri isn't a fetchable link on its own; handleOpen resolves a
+      // short-lived signed URL from it on demand.
+      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
       await base44.entities.EmployeeDocument.create({
         employee_id: employee.id,
         company_id: employee.company_id,
         name: file.name,
-        file_url,
+        file_uri,
       });
       loadDocs(employee.id);
     } catch (error) {
@@ -46,6 +53,18 @@ export default function EmployeeProfile() {
     } finally {
       setUploading(false);
       e.target.value = "";
+    }
+  };
+
+  const handleOpen = async (doc) => {
+    setOpeningDocId(doc.id);
+    try {
+      const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: doc.file_uri });
+      window.open(signed_url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast({ title: "No se pudo abrir el documento", description: error.message, variant: "destructive" });
+    } finally {
+      setOpeningDocId(null);
     }
   };
 
@@ -82,9 +101,15 @@ export default function EmployeeProfile() {
           </div>
           <div className="space-y-2">
             {docs.map((d) => (
-              <a key={d.id} href={d.file_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
-                <FileText className="w-4 h-4" /> {d.name}
-              </a>
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => handleOpen(d)}
+                disabled={openingDocId === d.id}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary disabled:opacity-60"
+              >
+                <FileText className="w-4 h-4" /> {openingDocId === d.id ? "Abriendo..." : d.name}
+              </button>
             ))}
             {docs.length === 0 && <p className="text-sm text-muted-foreground">Sin documentos cargados</p>}
           </div>

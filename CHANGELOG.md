@@ -9,6 +9,101 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.7] — 2026-09-14
+
+Scheduled RADAR audit routine re-run (16-point pass). No open PRs, no stale
+audit branches. This pass had authenticated Base44 MCP access to the live
+app, which turned up a real live-operations bug the repo-only checks in
+every prior pass couldn't see.
+
+### Fixed
+
+- **The attendance-monitor scheduled workflow had been silently disabled
+  since 2026-07-29.** `Monitor de Asistencia` (runs `attendanceMonitor`
+  every 15 minutes — marks no-shows absent, auto-closes open shifts) hit 5
+  consecutive failures ("No deployment URL for function 'attendanceMonitor'")
+  and Base44 auto-disabled it. The underlying deploy problem was already
+  gone by the time of this pass — a manual run-now completed successfully —
+  but the workflow itself stays off until someone flips it back on, and
+  nobody had. Confirmed live before touching it (`workflows` API: 2537 total
+  runs, 6 failed in a row starting exactly at the point it went dark, 0
+  since), ran it manually to prove the fix would hold, then re-activated it.
+  Six-plus weeks of missed absence-marking and auto-checkout — no prior
+  audit pass had live Base44 access to catch this; the functions-in-use
+  audit correctly listed `attendanceMonitor` as having no in-repo caller
+  (expected — it's schedule-triggered) but had no way to see the schedule
+  itself was off.
+- **Employee HR documents (IDs, contracts) were uploaded to public
+  storage.** Base44's own security scanner (run this pass) flagged
+  `EmployeeProfile.jsx`: `Core.UploadFile` writes to permanent,
+  world-readable storage, so the file's metadata row was RLS-scoped to the
+  owning employee while the file itself was reachable by anyone with the
+  URL — no auth required. Switched to `Core.UploadPrivateFile` +
+  `Core.CreateFileSignedUrl` (a short-lived link resolved on open, not
+  stored). `EmployeeDocument.file_url` renamed to `file_uri` to match — safe
+  as a hard rename, not a migration, because the live schema had 0
+  `EmployeeDocument` rows. Needs `npm run deploy:entities` to reach the
+  deployed schema (see Not verified below); `exportCompanyData`'s generic
+  pass-through needed no change and, as a side effect, now exports an opaque
+  private-storage URI instead of a directly-fetchable public link.
+- **1 dependency vulnerability** (`npm audit --audit-level=high`: 1 high —
+  `js-yaml`, GHSA-2883-xcg3-v3hh, unbounded CPU on an empty merge source) —
+  a transitive build-tooling dependency, not runtime app code. Resolved via
+  `npm audit fix` within existing semver ranges.
+
+### Verified (turned prior "not verified" items into confirmed ones)
+
+Live, authenticated Base44 MCP access was available this pass for the first
+time since 2026-08-24 (2026-08-31 and 2026-09-07 both hit CLI/auth
+timeouts). Used it to close out several items multiple prior passes had
+carried as unverified:
+
+- `_billingGuard.ts` (4 copies) and `_permissions.ts` (6 copies, including
+  the canonical `_shared` one) are byte-identical between the repo and the
+  deployed function source (checked via md5sum on both sides), not just
+  "should be" per the generator/validator.
+- `completeOnboarding`'s founder-door fix (`PLATFORM_OWNER_EMAIL` check,
+  module 14) is deployed and byte-identical to the repo.
+- The module-15 bridge's `ACCEPT_LEGACY_MASTER = false` is confirmed in
+  both deployed copies (`acaciaControl`, `notifyTicketCreated`).
+- `PermissionProfile`'s RLS (service-role-only `create`/`update`/`delete`,
+  2026-08-24 fix) is confirmed deployed via `list_entity_schemas` against
+  the live schema.
+- Ran Base44's own security scan (fresh, not the 2026-08-24 cached result):
+  no RLS recommendations, no hardcoded secrets in the sense of literal
+  credentials, no other backend-function or dependency findings beyond the
+  two fixed above.
+
+### Not verified
+
+- **`PLATFORM_OWNER_EMAIL` may not actually be set.** The fresh security
+  scan flagged it as an "unregistered environment variable" read in
+  `completeOnboarding/entry.ts` — notably, it did *not* flag
+  `INGEST_HMAC_SECRET`/`ACACIA_MC_INGEST_URL`/`ACACIA_APP_SLUG`, which are
+  read the same way in neighboring functions, suggesting the scanner can
+  tell a registered app secret from one that was never set. This sandbox
+  has no way to list or set secrets (`base44 secrets list` needs an
+  interactive device-code login this environment can't complete — confirmed
+  by trying, not assumed). The code fails closed either way (no email set
+  means the founder-recovery path is unusable by anyone, including the real
+  owner) — not a vulnerability, but worth the owner confirming directly in
+  the Base44 dashboard's Secrets panel, since the module-14 fix's whole
+  point was to give the real owner a recovery path.
+- **App public/private visibility** — open since the 2026-08-22 module-14
+  write-up, attempted again this pass via the platform API (no visibility
+  field in `GET /api/apps/{id}`) and via the CLI (`base44 secrets list`
+  hung on an interactive login prompt) — still not confirmable from this
+  environment. Worth a direct dashboard check.
+- The `EmployeeDocument` schema rename is a repo-only change until
+  `npm run deploy:entities` runs by hand (module 11) — safe either way per
+  the fail-closed-to-defaults precedent this repo already follows for
+  schema changes, since there's no live data the old field name touches.
+- Live tenant data unchanged: 0 `Company` rows, 1 `User` (the platform
+  owner) — still no second tenant to exercise role-boundary enforcement
+  against. UI/UX/cross-device/performance review, live UAT, and email
+  deliverability were not exercised — no browser session against a live
+  deploy exists here, same limitation every prior pass has recorded.
+
 ## [0.1.6] — 2026-09-07
 
 Scheduled RADAR audit routine re-run. The prior pass's PR (#35, opened

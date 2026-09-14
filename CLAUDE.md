@@ -822,3 +822,114 @@ either state. Live tenant data is otherwise unchanged (0 `Company` rows,
 1 `User`). UI/UX/cross-device/performance review, live UAT, and email
 deliverability were not exercised, same limitation every prior pass has
 recorded.
+
+## Scheduled audit routine — 2026-09-14
+
+Re-run of the standing 16-point audit routine. No open PRs, no stale audit
+branches. This pass had authenticated Base44 MCP access to the live app for
+the first time since 2026-08-24 — 2026-08-31 and 2026-09-07 both hit CLI/auth
+timeouts — and it turned up a real live-operations bug the repo-only checks
+in every prior pass structurally couldn't see.
+
+**Found and fixed — the attendance-monitor workflow had been silently off
+since 2026-07-29, six-plus weeks.** `Monitor de Asistencia` (the scheduled
+Base44 workflow that calls `attendanceMonitor` every 15 minutes — marks
+no-shows `absent`, auto-closes shifts nobody checked out of) hit 5
+consecutive failures — `error_message: "No deployment URL for function
+'attendanceMonitor'"` — starting exactly at 2026-07-29T00:00 UTC, and Base44
+auto-disabled it (`status: inactive`, `status_reason: consecutive_failures`)
+after the last one at 2026-07-29T17:20. Every scheduled run since then simply
+never fired; nothing in this repo's tooling would show that, because
+`functions:audit` correctly reports `attendanceMonitor` as having no in-repo
+caller (expected — it's schedule-triggered, not called from `src/`) and has
+no way to see whether the *schedule* itself is on. Confirmed the underlying
+deploy problem was already gone before touching anything — a manual
+`run-now` completed with no error — then re-activated the workflow via the
+platform API (`toggle-status`) and re-confirmed `status: active,
+consecutive_failures: 0, last_run_status: success`. Total runs: 2537 (2531
+successful, 6 failed — the 5 that triggered the auto-disable plus the one
+that reactivated it). Root cause of the original "no deployment URL" state
+wasn't chased further back than confirming it had resolved itself by the
+time of this pass (no user-facing regression traced to it beyond the missed
+absence-marking itself, and the July-2026 window predates every audit pass
+that has current context) — worth a note for whoever next touches deploy
+tooling that a workflow can go quietly dark this way with no repo-visible
+signal.
+
+**Found and fixed — HR documents uploaded to public storage.** Base44's own
+security scanner (run fresh this pass, not read from cache) flagged
+`src/pages/EmployeeProfile.jsx`: employee document uploads (IDs, contracts —
+the "expediente laboral") used `Core.UploadFile`, which is `UploadPublicFile`
+under another name — permanent, world-readable storage. The
+`EmployeeDocument` row was correctly RLS-scoped to the owning employee (the
+2026-08-03 fix), but that only protects the metadata; the file bytes
+themselves sat at a public URL requiring no auth at all, reachable by anyone
+who ever saw the link (browser history, a shared screen, a forwarded
+message). Switched to `Core.UploadPrivateFile` + `Core.CreateFileSignedUrl`
+(a signed link resolved fresh each time a document is opened, not stored).
+`EmployeeDocument.file_url` renamed to `file_uri` to match Base44's private-
+storage return shape — a straight rename rather than a migration, safe
+because `query_entities` confirmed 0 live `EmployeeDocument` rows.
+`exportCompanyData`'s pass-through needed no code change (it doesn't
+hardcode field names) and, incidentally, now exports an opaque private URI
+instead of a directly-usable public link — a small improvement to that path
+too. **Not yet deployed to the live schema** — same `npm run deploy:entities`
+gate module 11 describes for every entity change; safe in the meantime since
+there's no existing data the rename would orphan.
+
+**Found and fixed — 1 new dependency vulnerability.** `npm audit
+--audit-level=high`: 1 high (`js-yaml`, GHSA-2883-xcg3-v3hh — unbounded CPU
+on an empty merge source), a transitive build-tooling dependency. `npm audit
+fix` resolved it within existing semver ranges (`package-lock.json` only).
+
+**Turned four more "not verified" items into verified ones**, using the
+restored Base44 MCP access:
+
+- `_billingGuard.ts` (4 copies) and `_permissions.ts` (6 copies, canonical
+  `_shared` one included) are byte-identical between repo and deployed
+  source — checked via `md5sum` on both sides, not inferred from the
+  generator/validator having run.
+- `completeOnboarding`'s founder-door fix is deployed and byte-identical to
+  the repo (re-confirmed; last checked 2026-08-31).
+- The module-15 bridge's `ACCEPT_LEGACY_MASTER = false` is live in both
+  deployed copies (`acaciaControl`, `notifyTicketCreated`).
+- `PermissionProfile`'s service-role-only RLS is confirmed deployed via
+  `list_entity_schemas` (re-confirmed; last checked 2026-08-31).
+
+**New "not verified" item this pass — `PLATFORM_OWNER_EMAIL` may not
+actually be set.** The fresh security scan flagged it as reading an
+"unregistered environment variable" in `completeOnboarding/entry.ts` —
+notably it did *not* flag `INGEST_HMAC_SECRET`, `ACACIA_MC_INGEST_URL`, or
+`ACACIA_APP_SLUG`, read the exact same way in neighboring functions, which
+suggests the scanner can distinguish a registered app secret from one that
+was never set. Couldn't confirm directly: `base44 secrets list` (the one
+non-destructive way to check secret *names* without exposing values) needs
+an interactive device-code login this sandbox can't complete — tried it,
+confirmed the hang, did not assume either way. This is not a vulnerability
+either way the code fails closed — but if the email really is unset, the
+module-14 founder-recovery path is unusable by anyone, including the real
+owner, which defeats half the point of that fix. Worth the owner confirming
+directly in the Base44 dashboard's Secrets panel.
+
+**Everything else re-checked, nothing further found:** secrets scan (`git
+grep` for key/token/secret/password literals) clean; no `.env*` committed;
+`npm run lint` (eslint + all three validators) and `npm run build` pass;
+`npm run typecheck` — 252 errors, unchanged from every pass since
+2026-08-24 (no new drift, including from this pass's own `EmployeeProfile.jsx`
+edit — spot-checked its two typecheck errors individually, both pre-existing
+`PageHeader`/`Button` prop-shape mismatches unrelated to the file-upload
+change); `npm run functions:audit` — still 10 endpoints, `attendanceMonitor`
+still (correctly) `REVISAR EN PANEL` for having no in-repo caller — that
+label was never wrong, it just can't see workflow *schedule* state, which is
+exactly what this pass had to go find a different way. No open PRs; the long
+list of stale `claude/*` branches are all heads of already-merged or -closed
+PRs (same finding as 2026-09-07) — left alone.
+
+**Not verified.** App public/private visibility — open since 2026-08-22,
+attempted again this pass (no visibility field in `GET /api/apps/{id}`'s
+documented response; CLI login hangs the same way `secrets list` did) —
+still not confirmable from this environment; worth a direct dashboard check.
+Live tenant data unchanged: 0 `Company` rows, 1 `User` (the platform owner).
+UI/UX/cross-device/performance review, live UAT, and email deliverability
+were not exercised — no browser session against a live deploy exists here,
+same limitation every prior pass has recorded.
