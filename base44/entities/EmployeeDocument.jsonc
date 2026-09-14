@@ -10,7 +10,7 @@
   // to the caller's OWN employee_id (same $and shape as `create`) plus the
   // service-role branch. Unlike ShiftTemplate/Holiday (non-sensitive,
   // legitimately company-wide), this entity holds actual personal documents
-  // (ID, contracts — see `file_url`/`name`), and EmployeeProfile.jsx (the
+  // (ID, contracts — see `file_uri`/`name`), and EmployeeProfile.jsx (the
   // only reader) always filters by the caller's own employee.id. A
   // company_id-only read rule let ANY employee in the company read ANY
   // coworker's uploaded documents by passing a different employee_id to
@@ -19,6 +19,20 @@
   // UI in src/ today). If/when such a UI is built, extend this rule with a
   // role-checked read path (mirroring the manager-only write functions)
   // rather than reopening it to company-wide.
+  //
+  // SECURITY (3, scheduled audit 2026-09-14): `file_url` renamed to
+  // `file_uri`. The row-level RLS above was always correct, but the field
+  // held the return value of `Core.UploadFile`, which writes to permanent,
+  // world-readable PUBLIC storage — so the metadata row was access-controlled
+  // while the document bytes it pointed at were not (Base44's own security
+  // scan flagged this: src/pages/EmployeeProfile.jsx uploads HR documents —
+  // IDs, contracts — as public files). EmployeeProfile.jsx now uploads via
+  // `Core.UploadPrivateFile` (private storage) and stores the resulting
+  // `file_uri`, then calls `Core.CreateFileSignedUrl` for a short-lived link
+  // each time a document is opened, rather than embedding a permanent public
+  // URL. Safe to rename outright rather than dual-write/migrate: the live
+  // schema had 0 EmployeeDocument rows at the time of this fix (confirmed via
+  // query_entities), so there is no existing `file_url` data to carry over.
   "name": "EmployeeDocument",
   "type": "object",
   "properties": {
@@ -31,15 +45,16 @@
     "name": {
       "type": "string"
     },
-    "file_url": {
-      "type": "string"
+    "file_uri": {
+      "type": "string",
+      "description": "URI in Base44 private storage (Core.UploadPrivateFile). NOT a fetchable URL — resolve a temporary one via Core.CreateFileSignedUrl before opening."
     }
   },
   "required": [
     "employee_id",
     "company_id",
     "name",
-    "file_url"
+    "file_uri"
   ],
   "rls": {
     "read": {
