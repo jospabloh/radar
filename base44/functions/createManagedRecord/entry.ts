@@ -82,6 +82,21 @@ Deno.serve(async (req) => {
     const createBlock = await assertCompanyWritable(sr, user.company_id, user.app_role);
     if (createBlock) return Response.json({ error: createBlock.error, message: createBlock.message }, { status: createBlock.status });
 
+    // A ScheduleChangeRequest's employee_id is client-supplied (it's a
+    // manager proposing a change FOR someone else, so it can't be scoped to
+    // "own employee_id" the way PTORequest/ExtensionRequest are). Without
+    // this check a manager could name an employee_id from another company;
+    // company_id below would still read the caller's own, so the request
+    // would look same-tenant to resolveApprovalRequest's own check — this is
+    // the earlier of the two gates on that path, catching it at creation
+    // instead of only at approval time.
+    if (entity === 'ScheduleChangeRequest') {
+      const targetEmployee = await sr.entities.Employee.get(data.employee_id).catch(() => null);
+      if (!targetEmployee || targetEmployee.company_id !== user.company_id) {
+        return Response.json({ error: 'cross_tenant_reference' }, { status: 400 });
+      }
+    }
+
     // company_id always comes from the caller's own tenant, never the client
     // payload — a manager can only create records for their own company.
     const payload = { ...data, company_id: user.company_id };

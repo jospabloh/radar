@@ -933,3 +933,133 @@ Live tenant data unchanged: 0 `Company` rows, 1 `User` (the platform owner).
 UI/UX/cross-device/performance review, live UAT, and email deliverability
 were not exercised — no browser session against a live deploy exists here,
 same limitation every prior pass has recorded.
+
+## Scheduled audit routine — 2026-09-21
+
+Pre-flight found `audit/radar-full-review`'s previous pass (PR #37,
+2026-09-14) had already merged — the branch's own head commit wasn't an
+ancestor of `main` (squash merge), but its tree was content-identical to
+`main` except trivial `package-lock.json` drift, confirming it. Per the
+merged-PR protocol, restarted the branch from `main` rather than stacking on
+top of already-merged history. No open PRs; the long list of `claude/*`
+branches are all heads of already-merged/-closed PRs, same finding every
+prior pass has made — left alone.
+
+**Found and fixed — confirmed, high-severity cross-tenant write in
+`resolveApprovalRequest`.** This pass ran Base44's security scanner fresh
+(the previous cached result, from 2026-09-14, was stale and predated that
+day's own fixes) and it flagged, with `verification.verdict: "confirmed"`:
+`resolveApprovalRequest`'s only tenant check was `record.company_id !==
+user.company_id` on the **approval request itself** — never on the record
+its service-role side effects then write to. On approving a
+`ScheduleChangeRequest` it calls `Employee.update(record.employee_id,
+{schedule: ...})`; on an `ExtensionRequest`, `AttendanceRecord.update(
+record.attendance_record_id, ...)` — both with `asServiceRole`, both keyed
+off fields that were never validated to belong to the same company as the
+request.
+
+Traced two live paths to a bad reference:
+
+1. `ScheduleChangeRequest.create` is service-role-only, gated entirely by
+   `createManagedRecord`. That function forces `company_id` to the caller's
+   own tenant but passed `data.employee_id` straight through unchecked — a
+   `store_manager` could name an `employee_id` from a different company, and
+   the request would still read as same-tenant to `resolveApprovalRequest`'s
+   own check (its `company_id` is the caller's own).
+2. `ExtensionRequest.create`'s RLS requires the caller's own
+   `company_id`/`employee_id` on the request row, but never validates
+   `attendance_record_id` at all — an employee could file a same-company
+   request pointing at a different company's attendance record.
+
+Either path, once approved by a manager in the request's own (legitimate)
+company, would silently overwrite another tenant's `Employee.schedule` or
+`AttendanceRecord` — a real isolation break, exactly the shape module 14
+exists to catch, just not reachable to demonstrate against this app's
+current 0-company live state.
+
+Fixed at the actual write (`resolveApprovalRequest`): before either
+service-role update, re-read the referenced `Employee`/`AttendanceRecord`
+and reject with `cross_tenant_reference` unless its own stored `company_id`
+matches the approval request's. This is the single choke point that closes
+both paths regardless of how the bad reference was created. Added the same
+check, defense-in-depth, to `createManagedRecord` for
+`ScheduleChangeRequest.employee_id` at creation time, so path 1 is rejected
+before a bogus request can even be filed.
+
+**Deployed directly to the live backend this pass**, not left at "merged to
+`main`" — module 11's own lesson is that merging doesn't deploy. Wrote the
+fixed `entry.ts` files into the app's Base44 sandbox (confirmed
+byte-identical to the pre-fix repo state first), created before/after
+checkpoints, called the deploy API, and confirmed the fix present in the
+running container's own filesystem afterward (`grep` on `/app/base44/...`
+inside the live sandbox). `deno check` on both edited files found no new
+errors beyond the same pre-existing implicit-`any` SDK-typing noise every
+prior pass has recorded.
+
+**Investigated two more scanner findings, neither a real bug:**
+
+- `notifyTicketCreated`'s staff-bypass check reads the platform `role`
+  field (`admin`/`owner`), not RADAR's own `app_role` — the scanner read
+  this as blocking a `company_admin`/`store_manager` from notifying a
+  ticket a *different* employee created. Checked all three call sites
+  (`CompanySettings.jsx`, `SupportCenter.jsx`, `LicenseManagement.jsx`):
+  each invokes the function immediately after creating its own ticket, so
+  the caller always owns the ticket in every real code path — the
+  blocked case doesn't occur. `role` vs `app_role` is the intentional
+  Base44-platform-staff/RADAR-tenant-role split this file documents
+  elsewhere, not a bug. Even if it were wrong, the ticket itself is
+  already durably written and reaches Mission Control via the daily pull
+  sync regardless (module 8) — a silent notify failure only delays
+  awareness, never loses the ticket.
+- A cached scan result claimed `attendanceMonitor` 401s on scheduled
+  invocation because it requires `base44.auth.me()` to return an admin.
+  Live run history (checked 33 consecutive scheduled runs from this pass
+  alone, 0 failures, consistent with the 2537-total/6-failed figure from
+  2026-09-14's reactivation) shows Base44's own scheduler satisfies that
+  check. Not reproducible against the live app — the finding was already
+  gone from the fresh scan re-run after the code changes above.
+
+**Found and fixed — `PLATFORM_OWNER_EMAIL` was never actually set.**
+2026-09-14 could only note this as suspected (the scanner flagged it as an
+"unregistered environment variable" but the local CLI's `secrets list`
+hangs in this sandbox). This pass confirmed it directly: the platform API's
+`POST /api/apps/{id}/secrets` reported the key as newly `created`, not
+`updated`. Set it to the platform owner's own email (the same address
+already on the sole `super_admin` `User` row) — this closes the module-14
+founder-recovery path, which had been silently unusable by anyone,
+including the real owner, in the seven weeks since it was written.
+
+**New browser-based UI verification this pass.** Every prior pass recorded
+"no browser session against a live deploy exists here" and stopped there.
+This pass built the app locally, served it with `vite preview`, and drove it
+with the Chromium/Playwright already available in this sandbox: login and
+register pages render correctly at mobile (390)/tablet (834)/desktop (1440)
+with no console page errors, the theme switcher is present and a light→dark
+toggle carries correctly across navigation with no layout breakage. This
+checks the local build, not the actual deployed site (still can't reach that
+from here), but it's real signal on modules 10/12 no prior pass produced.
+
+**Turned more "not verified" items into verified ones:**
+- `EmployeeDocument.file_uri` (2026-09-14's private-storage rename) and
+  `PermissionProfile`'s service-role-only RLS (2026-08-24) both
+  re-confirmed deployed via `list_entity_schemas`.
+- Attendance-monitor workflow re-confirmed active, 0 consecutive failures,
+  since the 2026-09-14 reactivation.
+
+**Everything else re-checked, nothing further found:** secrets scan clean;
+`npm run lint` (eslint + all three validators) and `npm run build` pass;
+`npm audit --audit-level=high` — 0 vulnerabilities; `npm run typecheck` —
+252 errors, unchanged since 2026-08-24; `npm run functions:audit` — still
+10 endpoints, `attendanceMonitor` still the sole `REVISAR EN PANEL` entry
+(correctly — it can't see workflow *schedule* state, which is exactly what
+this pass and 2026-09-14's had to go check a different way).
+
+**Not verified.** App public/private visibility — open since 2026-08-22,
+still not confirmable from this environment (no visibility field on `GET
+/api/apps/{id}`, CLI login still hangs). Live tenant data unchanged: 0
+`Company` rows, 1 `User` — no second tenant exists to exercise the fixed
+cross-tenant check against with real data; the fix was verified by code
+inspection, a fresh security-scan re-run showing the finding gone, and live
+deploy confirmation, not by an actual cross-tenant approval attempt against
+real records. Cross-device/performance review, live UAT, and email
+deliverability were not exercised.
