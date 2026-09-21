@@ -9,6 +9,98 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.8] — 2026-09-21
+
+Scheduled RADAR audit routine re-run (16-point pass). No open PRs, no stale
+audit branches; branch `audit/radar-full-review` restarted from `main` per
+the merged-PR protocol (its previous pass, PR #37, had already merged). This
+pass ran Base44's fresh security scan (not a cached read) and it surfaced a
+confirmed, high-severity cross-tenant write.
+
+### Fixed
+
+- **Cross-tenant write in approval side-effects (high severity, confirmed by
+  Base44's security scanner).** `resolveApprovalRequest`'s only tenant check
+  was on the approval request's own `company_id` — never on the `employee_id`
+  (for a `ScheduleChangeRequest`) or `attendance_record_id` (for an
+  `ExtensionRequest`) it then writes to via `asServiceRole`. A manager could
+  propose a schedule change for an `employee_id` belonging to a different
+  company (`createManagedRecord` forces `company_id` to the caller's own
+  tenant but never validated `employee_id` against it), or an employee could
+  file an `ExtensionRequest` whose `attendance_record_id` pointed at a
+  different company's attendance record (its own RLS never checks that
+  field). Either one, once approved by a same-company manager, would write
+  into another tenant's `Employee.schedule` or `AttendanceRecord` — a real
+  multi-tenant isolation break. Fixed by verifying the referenced record's
+  own stored `company_id` against the approval request's `company_id`,
+  in `resolveApprovalRequest` (the actual write, and the fix that closes both
+  attack paths regardless of how the bad reference got created) and,
+  defense-in-depth, in `createManagedRecord` (rejects the bad `employee_id`
+  at creation time instead of only at approval). Deployed directly to the
+  live backend the same pass (not just merged to `main` — module 11's own
+  lesson), verified present in the running container afterward.
+- **`PLATFORM_OWNER_EMAIL` was never actually set.** Flagged as a suspicion
+  since 2026-09-14 (the security scanner read it as an "unregistered
+  environment variable" but couldn't be confirmed from this sandbox back
+  then). This pass confirmed it directly — the secrets API reported it as
+  newly `created`, not `updated` — and set it to the platform owner's own
+  email, closing the module-14 founder-recovery path that had been
+  unusable by anyone, including the real owner, since it was added.
+
+### Investigated, not a bug
+
+- **`notifyTicketCreated`'s staff bypass uses the platform `role` field, not
+  the app's `app_role`.** The scanner read this as blocking `company_admin`/
+  `store_manager` from notifying a ticket a different employee created.
+  All three call sites (`CompanySettings.jsx`, `SupportCenter.jsx`,
+  `LicenseManagement.jsx`) invoke it immediately after the same request
+  creates its own ticket, so the caller always owns the ticket they're
+  notifying about — the "different employee's ticket" case this would
+  block never occurs in this codebase. `role` vs `app_role` here is the
+  intentional Base44-platform-staff vs. RADAR-tenant-role split documented
+  elsewhere in this file, not a mix-up. No fix needed; even a false silent
+  failure here only delays Mission Control's awareness by up to a day,
+  since the ticket itself is already durably written and picked up by the
+  daily pull sync regardless (module 8).
+- **A stale scan finding claimed `attendanceMonitor` 401s on scheduled
+  invocation.** The function does require `base44.auth.me()` to return an
+  admin; live run history (33+ consecutive scheduled runs this pass
+  checked, 0 failures, matching the 2537-total/6-failed record from
+  2026-09-14) shows Base44's own scheduler satisfies that check when
+  invoking the workflow. Not reproducible against the live app.
+
+### Verified this pass (new)
+
+- Login and register pages rendered and screenshotted locally via Playwright
+  at mobile/tablet/desktop viewports: no console page errors, theme switcher
+  present and working (including a live light→dark toggle carried across
+  navigation), no layout breakage — the first real browser check any pass
+  has been able to run, previously blocked by "no browser session against a
+  live deploy" (this checks the local build, not the deployed site, but is
+  new signal on UI/UX/module-12 no prior pass had).
+- `EmployeeDocument.file_uri` (2026-09-14's private-storage rename) and
+  `PermissionProfile`'s service-role-only RLS (2026-08-24's fix) both
+  re-confirmed deployed via `list_entity_schemas` against the live schema.
+- Attendance-monitor workflow re-confirmed active and healthy (0 consecutive
+  failures) after the 2026-09-14 reactivation.
+
+**Checks run:** `npm run lint` (eslint + `validate:rls` 15/13 +
+`validate:permissions` 13/5 + `validate:functions` 10 endpoints), `npm run
+build`, `npm audit --audit-level=high` (0 vulnerabilities), `npm run
+typecheck` (252 errors, unchanged), `npm run functions:audit` (10 endpoints,
+`attendanceMonitor` still the sole `REVISAR EN PANEL` entry), `deno check`
+on both edited `entry.ts` files (no new errors beyond the same pre-existing
+implicit-`any` SDK-typing noise every prior pass has recorded), secrets scan
+clean.
+
+**Not verified.** App public/private visibility — open since 2026-08-22,
+still not re-confirmable from this environment. Live tenant data unchanged:
+0 `Company` rows, 1 `User` (the platform owner) — no second tenant exists to
+exercise the fixed cross-tenant check against with real data (the fix was
+verified by code inspection and live deploy confirmation, not by an actual
+cross-tenant approval attempt). Cross-device/performance review, live UAT,
+and email deliverability were not exercised.
+
 ## [0.1.7] — 2026-09-14
 
 Scheduled RADAR audit routine re-run (16-point pass). No open PRs, no stale
