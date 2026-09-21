@@ -59,6 +59,29 @@ Deno.serve(async (req) => {
     const billingBlock = await assertCompanyWritable(sr, record.company_id, user.app_role);
     if (billingBlock) return Response.json({ error: billingBlock.error, message: billingBlock.message }, { status: billingBlock.status });
 
+    // The side-effect targets (Employee.schedule, AttendanceRecord) are
+    // asServiceRole writes keyed off employee_id/attendance_record_id fields
+    // that came from whoever created this request — createManagedRecord
+    // doesn't validate ScheduleChangeRequest's employee_id belongs to the
+    // caller's own company, and ExtensionRequest.create's RLS never checks
+    // attendance_record_id at all. Without this, a request whose *own*
+    // company_id matches the approving manager (the only check above) could
+    // still carry a cross-tenant reference, and approving it would write
+    // into another company's Employee/AttendanceRecord row. Verified against
+    // the referenced record's own stored company_id, never the request's.
+    if (status === 'approved' && entity === 'ScheduleChangeRequest') {
+      const targetEmployee = await sr.entities.Employee.get(record.employee_id).catch(() => null);
+      if (!targetEmployee || targetEmployee.company_id !== record.company_id) {
+        return Response.json({ error: 'cross_tenant_reference' }, { status: 400 });
+      }
+    }
+    if (status === 'approved' && entity === 'ExtensionRequest') {
+      const targetAttendance = await sr.entities.AttendanceRecord.get(record.attendance_record_id).catch(() => null);
+      if (!targetAttendance || targetAttendance.company_id !== record.company_id) {
+        return Response.json({ error: 'cross_tenant_reference' }, { status: 400 });
+      }
+    }
+
     const updates: Record<string, unknown> = { status };
     if (entity === 'PTORequest' && typeof manager_comment === 'string') {
       updates.manager_comment = manager_comment;
