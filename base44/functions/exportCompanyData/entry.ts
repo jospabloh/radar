@@ -47,7 +47,20 @@ Deno.serve(async (req) => {
     const data: Record<string, unknown[]> = {};
     for (const entity of COMPANY_ENTITIES) {
       try {
-        data[entity] = await sr.entities[entity].filter({ company_id: companyId });
+        const records = await sr.entities[entity].filter({ company_id: companyId });
+        // EmployeeDocument.read RLS deliberately restricts a document to its
+        // OWN employee (see the entity's .jsonc) — even company_admin/
+        // store_manager have no read access to a coworker's HR document.
+        // This export runs asServiceRole and is gated only by
+        // Empresa:export_data, which both those roles hold by default, so
+        // carrying file_uri here would hand any exporting manager a signed-
+        // URL-able reference into every employee's private documents,
+        // bypassing that restriction entirely. Keep the record (name, who
+        // it belongs to) so the export still reflects what's on file; drop
+        // the pointer to the file itself.
+        data[entity] = entity === 'EmployeeDocument'
+          ? records.map(({ file_uri, ...rest }: Record<string, unknown>) => rest)
+          : records;
       } catch (e) {
         data[entity] = [];
         console.error(`[exportCompanyData] ${entity} failed: ${(e as Error).message}`);
