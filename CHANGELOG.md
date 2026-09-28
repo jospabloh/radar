@@ -9,6 +9,91 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.9] — 2026-09-28
+
+Scheduled RADAR audit routine re-run (16-point pass). No open PRs; the
+`audit/radar-full-review` branch was a stale leftover from the already-merged
+2026-09-21 pass (PR #38) — this pass's work went to the harness-assigned
+`claude/brave-mendel-cvt1v1` branch instead, itself restarted from `main` per
+the merged-PR protocol (its own prior PR had also already merged, and the
+remote branch had been deleted). Ran Base44's fresh security scan (not a
+cached read); it re-confirmed the 2026-09-21 cross-tenant fix is deployed and
+holding, cleared the two items it had previously flagged as informational
+non-issues (`PLATFORM_OWNER_EMAIL` registration, `notifyTicketCreated`'s
+`role`-vs-`app_role` check), and surfaced one new confirmed finding.
+
+### Fixed
+
+- **`exportCompanyData` returned every employee's private HR document link to
+  any exporting manager (high severity, confirmed by Base44's security
+  scanner).** `EmployeeDocument`'s own read RLS deliberately restricts a
+  document to its own employee (or a platform admin) — even
+  `company_admin`/`store_manager` have no read access to a coworker's
+  uploaded ID or contract, by design (see the entity's `.jsonc` comment from
+  the 2026-08-03 fix). `exportCompanyData` runs `asServiceRole` and returned
+  every `EmployeeDocument` row's `file_uri` verbatim, gated only by the
+  `Empresa:export_data` permission both those roles hold by default — so any
+  manager who exported their company's data could turn a coworker's
+  `file_uri` into an openable document via `Core.CreateFileSignedUrl`
+  (the same call `EmployeeProfile.jsx` already makes), defeating the
+  per-employee restriction entirely. Fixed by stripping `file_uri` from
+  `EmployeeDocument` records before they're included in the export — the
+  record (who it belongs to, the file's name) still reflects what's on file,
+  but the export no longer hands out a usable pointer to the file itself.
+  Deployed directly to the live backend the same pass (checkpoint
+  `6aba17ec6b2ac0e7f894ccec`), not left at "merged to `main`" — module 11's
+  own lesson that merging doesn't deploy.
+
+### Verified, no changes needed
+
+- `resolveApprovalRequest`'s 2026-09-21 cross-tenant fix: re-read directly
+  from the live Base44 sandbox, byte-identical to the repo, and the fresh
+  scan's own `static_code_findings` came back clean for it this time
+  (2026-09-21's scan had predated the fix by minutes and was reading stale
+  cache on 2026-09-21's own first poll).
+- `PermissionProfile`'s service-role-only RLS, `EmployeeDocument.file_uri`
+  private-storage rename, the module-15 bridge's derived-key/
+  `ACCEPT_LEGACY_MASTER=false`, and `completeOnboarding`'s
+  `PLATFORM_OWNER_EMAIL` founder-door gate: all re-confirmed deployed via
+  direct schema/file reads against the live app.
+- `PLATFORM_OWNER_EMAIL` secret: confirmed actually **set** (present in the
+  app's secret list, not just referenced in code) — the fresh scan's flag on
+  it was Base44's own "unregistered env var" bookkeeping, not evidence the
+  value was missing.
+- `notifyTicketCreated`'s `role`-vs-`app_role` check: re-investigated:  every
+  real call site notifies a ticket the caller just created themselves, so the
+  scanner's hypothetical "blocks a coworker's ticket" case doesn't occur in
+  practice — confirmed non-issue, unchanged from the 2026-09-21 write-up.
+- `attendanceMonitor` workflow: active, 0 consecutive failures, last run
+  minutes before this pass started (9 minutes), 3881 total runs — healthy
+  since its 2026-09-14 reactivation.
+- `npm run lint` (eslint + `validate:rls` 15/13 + `validate:permissions`
+  13/5 + `validate:functions` 10 endpoints), `npm run build`, and
+  `npm audit --audit-level=high` (0 vulnerabilities) all pass.
+- `npm run typecheck` — 252 errors, unchanged since 2026-08-24 (no new
+  drift, including from this pass's own `exportCompanyData/entry.ts` edit —
+  `deno check` on the edited file found only the same pre-existing
+  implicit-`any` noise in `_permissions.ts` every prior pass has recorded,
+  nothing new).
+- Secrets scan (`git grep` for key/token/secret/password literals): clean;
+  no `.env*` committed.
+- `_billingGuard.ts` (4 copies) and `_permissions.ts` (6 copies): still
+  byte-identical to each other (checked via `md5sum`).
+
+### Not verified
+
+- App public/private visibility — open since 2026-08-22, still not
+  confirmable from this environment: the Base44 platform API's `GET
+  /api/apps/{id}` documents no visibility field, and no other catalog area
+  (access-requests, metadata, group-shares) exposes one either. Worth a
+  direct check in the Base44 dashboard.
+- Live tenant data unchanged: 0 `Company` rows, 1 `User` (the platform
+  owner) — no second tenant exists to exercise role-boundary or the fixed
+  export behavior against with real data. UI/UX/cross-device/performance
+  review, live UAT, and email deliverability were not exercised — no browser
+  session against a live deploy exists here, same limitation every prior
+  pass has recorded.
+
 ## [0.1.8] — 2026-09-21
 
 Scheduled RADAR audit routine re-run (16-point pass). No open PRs, no stale

@@ -1063,3 +1063,91 @@ inspection, a fresh security-scan re-run showing the finding gone, and live
 deploy confirmation, not by an actual cross-tenant approval attempt against
 real records. Cross-device/performance review, live UAT, and email
 deliverability were not exercised.
+
+## Scheduled audit routine — 2026-09-28
+
+Pre-flight: no open PRs. The task template's `audit/radar-full-review`
+branch exists on GitHub but is a stale leftover — its one commit is the
+already-squash-merged 2026-09-21 pass (PR #38), content-identical to `main`.
+This session's harness-assigned branch is `claude/brave-mendel-cvt1v1`
+instead; its own remote head had likewise already merged and the remote
+branch was deleted, so per the merged-PR protocol this pass restarted it
+from `main` (already equal locally) rather than stacking on old history.
+
+Ran the full local verification suite first (`npm run lint`, `npm run
+build`, `npm audit --audit-level=high`, `npm run typecheck`,
+`npm run functions:audit`) — all clean / unchanged from 2026-09-21's
+baseline. Then ran Base44's security scanner fresh against the live app
+(not a cached read, confirmed by polling `status` from `scanning` to
+`up_to_date` and checking `scanned_at` advanced to this pass's own
+timestamp).
+
+**Found and fixed — confirmed, high-severity PII exposure in
+`exportCompanyData`.** The scan flagged that the company-data export (module
+7's "Descargar datos") returns every `EmployeeDocument` row's `file_uri`
+verbatim. `EmployeeDocument.read` RLS is deliberately scoped to the
+document's own employee (or a platform admin) — the entity's own `.jsonc`
+comment from the 2026-08-03 fix says explicitly that even
+`company_admin`/`store_manager` get no company-wide read here, because there
+was no manager-facing document-review feature to justify it. But
+`exportCompanyData` runs `asServiceRole` and is gated only by the
+`Empresa:export_data` permission, which both those roles hold by default —
+so exporting the company's data handed the requesting manager a
+`file_uri` for every coworker's uploaded ID/contract, which
+`Core.CreateFileSignedUrl` (the same call `EmployeeProfile.jsx` already
+makes) turns into an openable document. Confirmed by reading
+`exportCompanyData/entry.ts` and `EmployeeDocument.jsonc` directly — the scan
+was right. Fixed by dropping `file_uri` from `EmployeeDocument` records
+before they're added to the export payload, keeping the rest of the record
+(so the export still reflects what documents exist) — the minimal fix that
+matches what `CompanySettings.jsx`'s own export copy already promises
+("empleados, asistencias, solicitudes y turnos"; it never claims to include
+document files). `deno check` on the edited file surfaced no new errors,
+only the same pre-existing implicit-`any` noise in `_permissions.ts` every
+prior pass has recorded.
+
+**Deployed directly to the live backend this pass** (checkpoint
+`6aba17ec6b2ac0e7f894ccec`, preceded by a pre-fix checkpoint
+`6aba17d2f0d93d21552470a0` for rollback) — not left at "merged to `main`",
+per module 11.
+
+**The scan also re-confirmed two prior "no changes needed" calls and one
+prior fix, rather than re-flagging them:**
+- `resolveApprovalRequest`'s 2026-09-21 cross-tenant fix came back completely
+  clean in `static_code_findings` this time. (2026-09-21's own scan had
+  flagged it because that pass's first poll landed on a cache from *before*
+  the fix was written minutes earlier — same "stale cache, not a live gap"
+  shape, confirmed again here by reading the deployed file directly: it is
+  byte-identical to the repo and has the `cross_tenant_reference` checks.)
+- `PLATFORM_OWNER_EMAIL` still shows as an "unregistered environment
+  variable" in the scan's `hardcoded_secrets` list on the *first* (stale)
+  poll of this pass, exactly as it did on 2026-09-21 and 2026-09-14 — and
+  is gone from the *fresh* scan's results entirely. Directly confirmed via
+  the platform's secrets list that the value is actually set (present as a
+  key, not just referenced in code), closing the "may not actually be set"
+  question 2026-09-14 could only leave open.
+- `notifyTicketCreated`'s `role`-vs-`app_role` flag: re-investigated the
+  same way as 2026-09-21 (checked all three call sites), same conclusion —
+  every real caller notifies a ticket it just created itself, so the
+  hypothetical blocked case never occurs. Unchanged from that write-up.
+
+**Everything else re-checked, nothing further found:** secrets scan (`git
+grep` for key/token/secret/password literals) clean; no `.env*` committed;
+`_billingGuard.ts` (4 copies) and `_permissions.ts` (6 copies) still
+byte-identical to each other via `md5sum`; `attendanceMonitor` workflow
+active, 0 consecutive failures, last run 9 minutes before this pass started,
+3881 total runs since the 2026-09-14 reactivation.
+
+**Not verified.** App public/private visibility — open since 2026-08-22,
+still not confirmable from this environment: this pass checked the full
+Base44 platform API catalog (261 operations across 33 areas) for a
+visibility/sharing toggle on the published app and found none — `GET
+/api/apps/{id}`'s documented schema has no such field, and
+`access-requests`/`metadata`/`group-shares` are about workspace
+collaboration, not the published app's own auth gate. Worth a direct
+dashboard check; not chased further via CLI since prior passes already
+established it hangs on login in this sandbox. Live tenant data unchanged: 0
+`Company` rows, 1 `User` — no second tenant exists to exercise the fixed
+export behavior, or any role-boundary check, against real data.
+Cross-device/performance review, live UAT, and email deliverability were not
+exercised.
