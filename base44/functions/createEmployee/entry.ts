@@ -83,20 +83,24 @@ Deno.serve(async (req) => {
     // exactly one row, so a second invite would either be dead or silently
     // decided by whichever row sorts first. Runs before inviteUser so a refused
     // invite sends no email.
-    const wanted = String(email).trim().toLowerCase();
-    const existing = await sr.entities.Employee.filter({ email: String(email).trim() });
-    const existingLower = wanted !== String(email).trim() ? await sr.entities.Employee.filter({ email: wanted }) : [];
-    if ([...existing, ...existingLower].some((e: { status?: string }) => e.status !== 'inactive')) {
+    // Emails are stored canonical (trim + lowercase). Rows created before that
+    // may hold any casing and filters are exact-case, so query every spelling
+    // of the typed address and merge before the guard.
+    const canonicalEmail = String(email).trim().toLowerCase();
+    const spellings = [...new Set([String(email), String(email).trim(), canonicalEmail].filter((v) => v.length > 0))];
+    const found = await Promise.all(spellings.map((v) => sr.entities.Employee.filter({ email: v })));
+    const existing = found.flat();
+    if (existing.some((e: { status?: string }) => e.status !== 'inactive')) {
       return Response.json(
         { error: 'email_already_registered', message: 'Ese correo ya está dado de alta en una empresa. Una persona solo puede pertenecer a una.' },
         { status: 409 },
       );
     }
 
-    await base44.users.inviteUser(email, 'user');
+    await base44.users.inviteUser(canonicalEmail, 'user');
 
     const employee = await sr.entities.Employee.create({
-      email,
+      email: canonicalEmail,
       full_name,
       role: grantedRole,
       company_id: targetCompanyId,

@@ -23,6 +23,20 @@ export interface EmployeeRow {
 
 export const normalizeEmail = (value: unknown): string => String(value ?? '').trim().toLowerCase();
 
+// Distinct spellings worth querying: the raw value, trimmed, and trimmed+lowercased.
+// Base44 filters are exact-case, so rows stored before emails were canonicalised
+// are only reachable through the spelling they were typed with.
+export function emailQueryVariants(raw: unknown): string[] {
+  const r = String(raw ?? '');
+  return [...new Set([r, r.trim(), r.trim().toLowerCase()].filter((v) => v.length > 0))];
+}
+
+export function mergeById<T extends { id: string }>(lists: T[][]): T[] {
+  const seen = new Map<string, T>();
+  for (const list of lists) for (const row of list) if (!seen.has(row.id)) seen.set(row.id, row);
+  return [...seen.values()];
+}
+
 export function pickEmployeeForEmail(rows: EmployeeRow[], email: string): EmployeeRow | null {
   const target = normalizeEmail(email);
   if (!target) return null;

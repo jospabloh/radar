@@ -29,3 +29,21 @@ Deno.test('several matches resolve to one deterministic company', () => {
   ];
   eq(pickEmployeeForEmail(rows, 'ana@x.com')?.id, 'a', 'oldest active');
 });
+
+import { emailQueryVariants, mergeById } from '../functions/completeOnboarding/_pickEmployee.ts';
+Deno.test('emailQueryVariants covers raw, trimmed and lowercased spellings once each', () => {
+  const v = emailQueryVariants(' Ana@X.com ');
+  eq(v.length, 3, 'three variants');
+  eq(v.includes(' Ana@X.com '), true, 'raw');
+  eq(v.includes('Ana@X.com'), true, 'trimmed');
+  eq(v.includes('ana@x.com'), true, 'lower');
+  eq(emailQueryVariants('ana@x.com').length, 1, 'canonical is one variant');
+  eq(emailQueryVariants('').length, 0, 'blank');
+});
+Deno.test('mergeById dedupes candidates found by several spellings', () => {
+  eq(mergeById([[{ id: 'a' }, { id: 'b' }], [{ id: 'b' }, { id: 'c' }]]).length, 3, 'merged');
+});
+Deno.test('a legacy mixed-case row reached via the raw variant still resolves', () => {
+  const rows = mergeById([[row({ id: 'legacy', email: 'Ana@X.com' })], []]);
+  eq(pickEmployeeForEmail(rows, 'ana@x.com')?.id, 'legacy', 'legacy');
+});

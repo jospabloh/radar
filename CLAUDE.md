@@ -1236,3 +1236,15 @@ primero: el sitio nuevo solo depende de que el 404 `not_found` siga igual. Verif
 por contenido: llamar `createEmployee` con un correo ya dado de alta debe dar 409
 `email_already_registered`, y el bundle servido debe contener
 "aún no está asociada a una empresa".
+
+### Seguimiento de la revisión de Codex (2026-09-30)
+
+`createEmployee` y `completeOnboarding` dependían de un filtro de correo exacto en
+mayúsculas/minúsculas. Ahora `createEmployee` guarda y invita con el correo canónico
+(trim + minúsculas), y las dos funciones consultan todas las grafías (la cruda de
+`user.email`, recortada y en minúsculas), fusionan los candidatos por id
+(`emailQueryVariants`/`mergeById` en `_pickEmployee.ts`) y solo entonces aplican
+`pickEmployeeForEmail` o el guardia de una empresa por persona. Así una fila antigua
+con mayúsculas sigue encontrándose. Verificado: `lint`, `build`, `validate:rls`,
+`npm test` (7) y `deno test base44/tests/` (8); `deno lint` conserva los 11 avisos
+previos. No verificado contra Base44 en vivo.
