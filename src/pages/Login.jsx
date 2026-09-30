@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import VerifyEmailStep from "@/components/VerifyEmailStep";
+import { needsEmailVerification } from "@/lib/emailVerification";
 import { getRememberedIdentity, clearRememberedIdentity, rememberIdentity } from "@/lib/lastIdentity";
 
 export default function Login() {
@@ -15,11 +17,20 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const useOtherAccount = () => {
     clearRememberedIdentity();
     setRemembered(null);
     setEmail("");
+  };
+
+  const finishLogin = async () => {
+    try {
+      const me = await base44.auth.me();
+      rememberIdentity(me);
+    } catch { /* greeting is best-effort */ }
+    window.location.href = "/";
   };
 
   const handleSubmit = async (e) => {
@@ -28,13 +39,14 @@ export default function Login() {
     setLoading(true);
     try {
       await base44.auth.loginViaEmailPassword(email, password);
-      try {
-        const me = await base44.auth.me();
-        rememberIdentity(me);
-      } catch { /* greeting is best-effort */ }
-      window.location.href = "/";
+      await finishLogin();
     } catch (err) {
-      setError(err.message || "Correo o contraseña incorrectos");
+      // Unverified account: open the code step instead of the raw platform text.
+      if (needsEmailVerification(err)) {
+        setVerifying(true);
+      } else {
+        setError(err.message || "Correo o contraseña incorrectos");
+      }
     } finally {
       setLoading(false);
     }
@@ -43,6 +55,25 @@ export default function Login() {
   const handleGoogle = () => {
     base44.auth.loginWithProvider("google", "/");
   };
+
+  if (verifying) {
+    return (
+      <VerifyEmailStep
+        email={email}
+        password={password}
+        onVerified={({ needsLogin }) => {
+          if (needsLogin) {
+            setVerifying(false);
+            setPassword("");
+            setError("Correo verificado. Inicia sesión para continuar.");
+          } else {
+            finishLogin();
+          }
+        }}
+        onCancel={() => setVerifying(false)}
+      />
+    );
+  }
 
   return (
     <AuthLayout

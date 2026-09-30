@@ -31,7 +31,7 @@ export default function SuperAdminCompanies() {
       setForm({ name: "", is_mexican: true, tier: "starter", max_employees: 15 });
       load();
     } catch (error) {
-      toast({ title: "No se pudo crear la empresa", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo crear la empresa", description: error?.response?.data?.message || error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -49,7 +49,7 @@ export default function SuperAdminCompanies() {
       setShowInvite(null);
       setInviteForm({ email: "", full_name: "" });
     } catch (error) {
-      toast({ title: "No se pudo enviar la invitación", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo enviar la invitación", description: error?.response?.data?.message || error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }

@@ -63,6 +63,12 @@ Deno.serve(async (req) => {
     }
 
     const sr = base44.asServiceRole;
+    // A super_admin names the company in the request: make sure it exists so an
+    // Employee row is never created pointing at nothing.
+    if (isSuperAdmin) {
+      const found = await sr.entities.Company.filter({ id: targetCompanyId });
+      if (found.length === 0) return Response.json({ error: 'company_not_found' }, { status: 404 });
+    }
     // Module 3: checked against the tenant the invite TARGETS (a super_admin
     // may invite into any company), before inviteUser fires — a denied caller
     // must not cause a real invitation email either.
@@ -71,6 +77,21 @@ Deno.serve(async (req) => {
 
     const billingBlock = await assertCompanyWritable(sr, targetCompanyId, user.app_role);
     if (billingBlock) return Response.json({ error: billingBlock.error, message: billingBlock.message }, { status: billingBlock.status });
+
+    // One person, one company: an email that already has an Employee row (any
+    // company) cannot be invited again. completeOnboarding resolves an email to
+    // exactly one row, so a second invite would either be dead or silently
+    // decided by whichever row sorts first. Runs before inviteUser so a refused
+    // invite sends no email.
+    const wanted = String(email).trim().toLowerCase();
+    const existing = await sr.entities.Employee.filter({ email: String(email).trim() });
+    const existingLower = wanted !== String(email).trim() ? await sr.entities.Employee.filter({ email: wanted }) : [];
+    if ([...existing, ...existingLower].some((e: { status?: string }) => e.status !== 'inactive')) {
+      return Response.json(
+        { error: 'email_already_registered', message: 'Ese correo ya está dado de alta en una empresa. Una persona solo puede pertenecer a una.' },
+        { status: 409 },
+      );
+    }
 
     await base44.users.inviteUser(email, 'user');
 
