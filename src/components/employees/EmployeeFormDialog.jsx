@@ -33,7 +33,7 @@ export default function EmployeeFormDialog({ open, onOpenChange, onCreated }) {
       onOpenChange(false);
       onCreated();
     } catch (error) {
-      toast({ title: "No se pudo crear el empleado", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo crear el empleado", description: error?.response?.data?.message || error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }

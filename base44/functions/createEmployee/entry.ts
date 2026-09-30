@@ -63,6 +63,12 @@ Deno.serve(async (req) => {
     }
 
     const sr = base44.asServiceRole;
+    // A super_admin names the company in the request: make sure it exists so an
+    // Employee row is never created pointing at nothing.
+    if (isSuperAdmin) {
+      const found = await sr.entities.Company.filter({ id: targetCompanyId });
+      if (found.length === 0) return Response.json({ error: 'company_not_found' }, { status: 404 });
+    }
     // Module 3: checked against the tenant the invite TARGETS (a super_admin
     // may invite into any company), before inviteUser fires — a denied caller
     // must not cause a real invitation email either.
@@ -72,10 +78,29 @@ Deno.serve(async (req) => {
     const billingBlock = await assertCompanyWritable(sr, targetCompanyId, user.app_role);
     if (billingBlock) return Response.json({ error: billingBlock.error, message: billingBlock.message }, { status: billingBlock.status });
 
-    await base44.users.inviteUser(email, 'user');
+    // One person, one company: an email that already has an Employee row (any
+    // company) cannot be invited again. completeOnboarding resolves an email to
+    // exactly one row, so a second invite would either be dead or silently
+    // decided by whichever row sorts first. Runs before inviteUser so a refused
+    // invite sends no email.
+    // Emails are stored canonical (trim + lowercase). Rows created before that
+    // may hold any casing and filters are exact-case, so query every spelling
+    // of the typed address and merge before the guard.
+    const canonicalEmail = String(email).trim().toLowerCase();
+    const spellings = [...new Set([String(email), String(email).trim(), canonicalEmail].filter((v) => v.length > 0))];
+    const found = await Promise.all(spellings.map((v) => sr.entities.Employee.filter({ email: v })));
+    const existing = found.flat();
+    if (existing.some((e: { status?: string }) => e.status !== 'inactive')) {
+      return Response.json(
+        { error: 'email_already_registered', message: 'Ese correo ya está dado de alta en una empresa. Una persona solo puede pertenecer a una.' },
+        { status: 409 },
+      );
+    }
+
+    await base44.users.inviteUser(canonicalEmail, 'user');
 
     const employee = await sr.entities.Employee.create({
-      email,
+      email: canonicalEmail,
       full_name,
       role: grantedRole,
       company_id: targetCompanyId,

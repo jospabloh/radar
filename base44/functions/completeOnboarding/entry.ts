@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { pickEmployeeForEmail, emailQueryVariants, mergeById } from './_pickEmployee.ts';
 
 // completeOnboarding — server-side counterpart of src/pages/Onboarding.jsx.
 //
@@ -67,9 +68,17 @@ Deno.serve(async (req) => {
     // Case 1: an admin already created an Employee row for this email — link
     // it to this account and inherit exactly the role/company that row grants.
     // Never trust a role/company_id passed in from the client for this case.
-    const matches = await sr.entities.Employee.filter({ email });
-    if (matches.length > 0) {
-      const emp = matches[0];
+    // The role/company come ONLY from the stored row; pickEmployeeForEmail
+    // ignores inactive rows and unknown roles, and matches case-insensitively.
+    // Filters are exact-case, so query every spelling (raw account email,
+    // trimmed, lowercased) and merge; pickEmployeeForEmail does the real,
+    // case-insensitive match. No dependence on how the row was stored.
+    const lists = await Promise.all(
+      emailQueryVariants(user.email).map((v) => sr.entities.Employee.filter({ email: v })),
+    );
+    const candidates = mergeById(lists);
+    const emp = pickEmployeeForEmail(candidates, email);
+    if (emp) {
       await sr.entities.Employee.update(emp.id, { user_id: user.id });
       await sr.entities.User.update(user.id, {
         app_role: emp.role,

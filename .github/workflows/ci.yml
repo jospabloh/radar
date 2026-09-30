@@ -37,6 +37,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Unit tests
+        run: npm test
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Deno tests (import-free helpers under base44/tests)
+        run: deno test base44/tests/
+
       - name: Build
         run: npm run build
 

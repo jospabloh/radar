@@ -1151,3 +1151,100 @@ established it hangs on login in this sandbox. Live tenant data unchanged: 0
 export behavior, or any role-boundary check, against real data.
 Cross-device/performance review, live UAT, and email deliverability were not
 exercised.
+
+## Verificación de correo por código y unión a una empresa (2026-09-30, v0.1.10)
+
+Disparado por stockflow, donde un cliente se registró, Base44 le mandó el
+código y la app nunca le mostró dónde escribirlo. Aquí Register ya tenía la
+pantalla de código, pero **Login mostraba el rechazo crudo en inglés** a quien
+había cerrado la pestaña sin verificar: mismo callejón sin salida.
+
+### Objetivo A: verificación por código
+
+- `src/lib/emailVerification.js` (JS puro, sin imports; lo prueba `node --test`):
+  `needsEmailVerification(error)` (regex laxa sobre el mensaje de la plataforma,
+  que no es contrato), `otpErrorMessage`, `resendErrorMessage` (español, nunca
+  texto crudo) y `normalizeOtp`.
+- `src/components/VerifyEmailStep.jsx`: paso de código compartido por Register y
+  Login (`verifyOtp({email, otpCode})`, `resendOtp`, login automático tras
+  verificar; si ese último paso falla el código ya valió, así que avisa y manda a
+  `/login`). Register perdió su copia inline; Login abre el paso cuando
+  `loginViaEmailPassword` falla por correo sin verificar y conserva el mensaje de
+  cualquier otro error.
+
+### Objetivo B: empresa (tenant), roles y unión
+
+RADAR es sales-led; **no se inventó alta libre de empresas ni solicitud/aprobación**.
+No se encontró ninguna vía por la que alguien entre a una empresa sin que un admin
+lo haya dado de alta. Lo que **ya cumplía** (releído en código y esquemas):
+
+- La única entrada es el `Employee` con el correo, creado por `createEmployee`
+  (super_admin: `company_admin` en una empresa; company_admin/store_manager:
+  `employee|store_manager` en SU empresa, `company_id` del servidor).
+  `completeOnboarding` hereda `app_role` y `company_id` de esa fila; el cliente no
+  manda ni elige nada. El rol lo fija quien crea el Employee.
+- `User.role/app_role/company_id/employee_id` son `rls.write` solo admin, y todo
+  lo tenant-scoped compara con `{{user.data.company_id}}`. `validate:rls` pasa.
+- El fundador (`super_admin`) solo es `PLATFORM_OWNER_EMAIL` y con Company vacía;
+  falla cerrado sin la variable.
+
+Lo que **se corrigió**:
+
+1. `Onboarding.jsx`: quien se registra con un correo sin Employee ve "Tu cuenta
+   aún no está asociada a una empresa" con su correo, pasos, soporte
+   (`soporte@acaciaco.com.mx`, WhatsApp), "reintentar" y "cerrar sesión". Antes
+   decía "No encontramos tu cuenta", y **cualquier** error (red, 5xx) se pintaba
+   igual; ahora un fallo real tiene su propia pantalla con reintento
+   (`src/lib/onboardingState.js`).
+2. `completeOnboarding`: usaba `matches[0]` de un filtro exacto. Ahora
+   `_pickEmployee.ts` (sin imports, probado con deno) ignora filas `inactive`,
+   roles fuera de `company_admin|store_manager|employee` (nunca "el string
+   guardado") y filas sin `company_id`; compara el correo sin distinguir
+   mayúsculas; si hay varias, elige la activa más antigua (una sola empresa,
+   determinista).
+3. `createEmployee`: responde 409 `email_already_registered` si el correo ya
+   tiene un Employee activo en cualquier empresa (un usuario, una empresa), antes
+   de `inviteUser` para no mandar correo; y 404 si el super_admin nombra una
+   empresa inexistente. Los diálogos de alta muestran ahora el `message` del
+   servidor (`error.response.data.message`) en vez del texto genérico de axios.
+
+### Pruebas y comprobaciones
+
+`npm test` es nuevo (`node --test "tests/unit/*.test.js"`, 7 pruebas) y corre en
+CI junto con `deno test base44/tests/` (5). Pasaron `npm run lint`,
+`validate:rls` (15/13), `build`, `deno lint` y las 5 pruebas de deno. `typecheck`
+251 errores (línea base 252, sin nuevos). `deno check` sobre las funciones trae
+los errores de tipos del SDK ya conocidos; no se corre en CI.
+
+### NO se pudo verificar
+
+- Un registro real con código, ni el reenvío, ni el login de una cuenta sin
+  verificar contra Base44 (la regex del mensaje es por suposición; si la
+  plataforma cambia el texto, Login vuelve a mostrar el error crudo).
+- Que `verifyOtp` devuelva `access_token` en esta app (el código cubre los dos
+  casos: token, o login con la contraseña, o `/login`).
+- Si `functions.invoke` rechaza con `err.response.data` o `err.data`
+  (`onboardingOutcome` acepta ambos).
+- Cuentas de dos empresas / un admin de empresa intentando cruzar; sesión de
+  navegador y pantallas a 390/834/1440 en claro y oscuro.
+
+### Orden de despliegue
+
+Sin cambios de esquema. (1) `npm run deploy` (`completeOnboarding`,
+`createEmployee`); (2) publicar; (3) `npm run deploy:site`. Las funciones van
+primero: el sitio nuevo solo depende de que el 404 `not_found` siga igual. Verificar
+por contenido: llamar `createEmployee` con un correo ya dado de alta debe dar 409
+`email_already_registered`, y el bundle servido debe contener
+"aún no está asociada a una empresa".
+
+### Seguimiento de la revisión de Codex (2026-09-30)
+
+`createEmployee` y `completeOnboarding` dependían de un filtro de correo exacto en
+mayúsculas/minúsculas. Ahora `createEmployee` guarda y invita con el correo canónico
+(trim + minúsculas), y las dos funciones consultan todas las grafías (la cruda de
+`user.email`, recortada y en minúsculas), fusionan los candidatos por id
+(`emailQueryVariants`/`mergeById` en `_pickEmployee.ts`) y solo entonces aplican
+`pickEmployeeForEmail` o el guardia de una empresa por persona. Así una fila antigua
+con mayúsculas sigue encontrándose. Verificado: `lint`, `build`, `validate:rls`,
+`npm test` (7) y `deno test base44/tests/` (8); `deno lint` conserva los 11 avisos
+previos. No verificado contra Base44 en vivo.

@@ -9,6 +9,20 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.10] — 2026-09-30
+
+- Email verification by code (OTP) for password accounts: new shared
+  `VerifyEmailStep` used by Register and, new, by Login when the platform
+  rejects an unverified account (previously the raw English error).
+- Onboarding: a signed-in user whose email has no Employee row now sees an
+  explicit "not associated to a company" screen with support contacts; a real
+  failure (network/5xx) is no longer shown as that.
+- `completeOnboarding` ignores inactive Employee rows and unknown roles and
+  matches the email case-insensitively; `createEmployee` refuses an email that
+  already belongs to a company (409) and verifies the company exists for a
+  super_admin invite.
+- `npm test` (node --test) and a Deno step in CI.
+
 ## [0.1.9] — 2026-09-28
 
 Scheduled RADAR audit routine re-run (16-point pass). No open PRs; the
