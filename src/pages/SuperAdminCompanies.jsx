@@ -26,7 +26,15 @@ export default function SuperAdminCompanies() {
   const createCompany = async () => {
     setSaving(true);
     try {
-      await base44.entities.Company.create(form);
+      // Not a direct base44.entities.Company.create(...): Company.jsonc's
+      // `create` RLS checks Base44's PLATFORM `role` (admin-only), which a
+      // RADAR super_admin who isn't also a platform collaborator on this app
+      // does not have — RLS structurally can't see the custom `app_role`
+      // field this page is actually gated by (same constraint documented for
+      // PermissionProfile elsewhere in this codebase). createCompany is a
+      // service-role function that re-checks `app_role === 'super_admin'` in
+      // code instead, the same shape createEmployee already uses for Employee.
+      await base44.functions.invoke("createCompany", form);
       setShowCreate(false);
       setForm({ name: "", is_mexican: true, tier: "starter", max_employees: 15 });
       load();
