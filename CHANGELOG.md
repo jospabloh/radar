@@ -9,6 +9,18 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.11] — 2026-10-02
+
+- Fixed: `SuperAdminCompanies.jsx`'s "Nueva empresa" silently failed with a
+  403 for any `super_admin` account that is not also a Base44 platform
+  collaborator/admin on this app — `Company.jsonc`'s `create` RLS checks the
+  platform `role` field, which RADAR's own `app_role` custom field (what the
+  page is actually gated by) is structurally invisible to. New `createCompany`
+  service-role function re-checks `app_role === 'super_admin'` in code, the
+  same shape `createEmployee` already uses for `Employee.create`. Found and
+  confirmed live during a QA pass driving a second `super_admin` test account
+  through the real UI.
+
 ## [0.1.10] — 2026-09-30
 
 - Email verification by code (OTP) for password accounts: new shared
