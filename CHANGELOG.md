@@ -9,6 +9,14 @@ versioning follows [Semantic Versioning](https://semver.org/). Entries are
 tenant-neutral — no company names, contact details, or internal debug
 detail.
 
+## [0.1.12] — 2026-10-05
+
+- Security: `npm audit fix` cleared the high-severity advisories on `axios`
+  and `brace-expansion` (lockfile only, within existing semver ranges).
+  One high advisory remains on `braces` (transitive build-time dependency
+  of `tailwindcss`/`micromatch`, no patched release exists upstream —
+  3.0.3 is the latest); it is not shipped in the browser bundle.
+
 ## [0.1.11] — 2026-10-02
 
 - Fixed: `SuperAdminCompanies.jsx`'s "Nueva empresa" silently failed with a
