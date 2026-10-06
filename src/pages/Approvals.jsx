@@ -9,13 +9,13 @@ import { usePermissions } from "@/lib/PermissionContext";
 
 function Row({ title, subtitle, onApprove, onReject, canResolve }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4">
-      <div>
+    <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-4">
+      <div className="min-w-0">
         <p className="font-medium text-foreground">{title}</p>
         <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
       {canResolve && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={onApprove}><Check className="w-4 h-4" /></Button>
           <Button size="sm" variant="outline" onClick={onReject}><X className="w-4 h-4" /></Button>
         </div>
@@ -67,17 +67,17 @@ export default function Approvals() {
 
   if (canView === false) {
     return (
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 sm:p-8 max-w-4xl mx-auto">
         <p className="text-center text-muted-foreground text-sm mt-12">No tienes permiso para ver esta página.</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-semibold text-foreground mb-6">Aprobaciones</h1>
       <Tabs defaultValue="pto">
-        <TabsList>
+        <TabsList className="h-auto w-full flex-wrap justify-start">
           <TabsTrigger value="pto">PTOs ({ptos.length})</TabsTrigger>
           <TabsTrigger value="schedule">Horarios ({scheduleReqs.length})</TabsTrigger>
           <TabsTrigger value="extension">Extensiones ({extensions.length})</TabsTrigger>

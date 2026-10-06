@@ -63,14 +63,14 @@ export default function ShiftSettings() {
     <div className="min-h-screen bg-background">
       <PageHeader title="Configuración de Horarios" subtitle="Define los turnos predeterminados de tu empresa" />
       <div className="max-w-2xl mx-auto px-6 space-y-6">
-        <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 space-y-4">
           <Input placeholder="Nombre del turno (ej. Matutino)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <div className="flex gap-4">
-            <div className="flex-1">
+          <div className="flex flex-wrap gap-4">
+            <div className="min-w-0 flex-1 basis-36">
               <label className="text-xs text-muted-foreground">Entrada</label>
               <Input type="time" value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} />
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1 basis-36">
               <label className="text-xs text-muted-foreground">Salida</label>
               <Input type="time" value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} />
             </div>
@@ -88,14 +88,14 @@ export default function ShiftSettings() {
 
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {templates.map((t) => (
-            <div key={t.id} className="flex items-center justify-between p-5">
-              <div>
+            <div key={t.id} className="flex items-center justify-between gap-3 p-4 sm:p-5">
+              <div className="min-w-0">
                 <p className="font-medium text-foreground">{t.name}</p>
                 <p className="text-sm text-muted-foreground">
                   {t.start} - {t.end} · {(t.days_of_week || []).map((d) => WEEKDAYS.find((w) => w.key === d)?.label).join(", ")}
                 </p>
               </div>
-              <button onClick={() => handleDelete(t.id)} className="text-muted-foreground hover:text-destructive">
+              <button onClick={() => handleDelete(t.id)} aria-label="Eliminar turno" className="shrink-0 text-muted-foreground hover:text-destructive">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>

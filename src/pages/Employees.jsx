@@ -29,8 +29,8 @@ export default function Employees() {
   }, [user]);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-8 max-w-5xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Empleados</h1>
         <Button className="bg-primary hover:bg-primary/90" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-2" />Nuevo empleado
@@ -39,12 +39,12 @@ export default function Employees() {
 
       <div className="bg-card rounded-2xl border border-border divide-y divide-border">
         {employees.map((emp) => (
-          <div key={emp.id} className="flex items-center justify-between px-5 py-4">
-            <div>
+          <div key={emp.id} className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-4">
+            <div className="min-w-[12rem] flex-1">
               <p className="font-medium text-foreground">{emp.full_name}</p>
-              <p className="text-sm text-muted-foreground">{emp.email}</p>
+              <p className="text-sm text-muted-foreground break-all">{emp.email}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0">
               <Badge variant="secondary">{ROLE_LABEL[emp.role]}</Badge>
               <Button variant="outline" size="sm" onClick={() => setScheduleTarget(emp)}>
                 <Clock className="w-4 h-4 mr-1" />Horario

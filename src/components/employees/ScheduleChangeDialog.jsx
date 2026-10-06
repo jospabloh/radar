@@ -44,7 +44,7 @@ export default function ScheduleChangeDialog({ open, onOpenChange, employee, onC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>Cambiar horario de {employee.full_name}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <ScheduleEditor schedule={schedule} onChange={setSchedule} />

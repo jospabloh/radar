@@ -80,9 +80,9 @@ export default function EmployeeProfile() {
       <div className="max-w-2xl mx-auto px-6 space-y-6">
         <div className="bg-card rounded-2xl border border-border p-6">
           <p className="font-semibold text-foreground mb-4">Datos personales</p>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div><p className="text-muted-foreground">Nombre</p><p className="text-foreground">{employee.full_name}</p></div>
-            <div><p className="text-muted-foreground">Correo</p><p className="text-foreground">{employee.email}</p></div>
+            <div><p className="text-muted-foreground">Correo</p><p className="text-foreground break-all">{employee.email}</p></div>
             <div><p className="text-muted-foreground">Puesto</p><p className="text-foreground">{ROLE_LABEL[employee.role]}</p></div>
             <div><p className="text-muted-foreground">Estatus</p><p className="text-foreground capitalize">{employee.status}</p></div>
             <div><p className="text-muted-foreground">Fecha de contratación</p><p className="text-foreground">{employee.hire_date || "—"}</p></div>
@@ -90,7 +90,7 @@ export default function EmployeeProfile() {
         </div>
 
         <div className="bg-card rounded-2xl border border-border p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <p className="font-semibold text-foreground">Documentos</p>
             <label>
               <Button variant="outline" size="sm" asChild>

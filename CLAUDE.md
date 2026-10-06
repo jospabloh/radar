@@ -1248,3 +1248,24 @@ mayúsculas/minúsculas. Ahora `createEmployee` guarda y invita con el correo ca
 con mayúsculas sigue encontrándose. Verificado: `lint`, `build`, `validate:rls`,
 `npm test` (7) y `deno test base44/tests/` (8); `deno lint` conserva los 11 avisos
 previos. No verificado contra Base44 en vivo.
+
+## Layout responsivo: escaneo de traslapes (2026-10-06)
+
+Reporte del dueño en otra app del portafolio (stockflow): botones traslapados en
+iPad. Aquí se midió en vez de suponer: `node scripts/responsive-scan.mjs`
+(`npm run build` antes; opciones `--only 390x844,834x1194`, `--role`, `--shots
+dir`, `--dist dir`) sirve el build con la API simulada (nada llega a Base44) y,
+por rol, en 320/390/768/834/1024 vertical y horizontal/1440, detecta cajas de
+elementos interactivos que se intersectan, desborde horizontal, controles fuera
+del viewport y controles tapados por el selector de tema o barras fijas (sólo
+al final del scroll: lo que sale al hacer scroll no cuenta). Salió con 0
+hallazgos tras los arreglos.
+
+Causas raíz que dejó: filas `flex justify-between` sin `min-w-0`/`flex-wrap`
+(botón "Horario" fuera de pantalla), `ScheduleEditor` con 5 elementos en una
+línea (el diálogo se salía a 320 px), fechas `flex-1` sin `min-w-0`, `p-8` fijo,
+y nada que dejara el último control libre del `ThemeSwitcher` fijo (ahora
+`main` y `AuthLayout` reservan `--theme-switcher-bottom` + 3.5 rem abajo, el
+cajón móvil nunca llega bajo el selector y `DialogContent` limita su alto a
+`100dvh - 8rem`). **No verificado:** Safari/iPad real; sólo Chromium con
+puntero táctil y las pantallas autenticadas con datos simulados.

@@ -64,8 +64,8 @@ export default function SuperAdminCompanies() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-8 max-w-5xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Empresas</h1>
         <Button className="bg-primary hover:bg-primary/90" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-2" />Nueva empresa
@@ -74,15 +74,15 @@ export default function SuperAdminCompanies() {
 
       <div className="bg-card rounded-2xl border border-border divide-y divide-border">
         {companies.map((c) => (
-          <div key={c.id} className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-3">
-              <Building2 className="w-5 h-5 text-muted-foreground" />
-              <div>
+          <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-4">
+            <div className="flex min-w-[12rem] flex-1 items-center gap-3">
+              <Building2 className="w-5 h-5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
                 <p className="font-medium text-foreground">{c.name}</p>
                 <p className="text-xs text-muted-foreground">{c.is_mexican ? "México (LFT)" : "Internacional"}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0">
               <Badge className={TIER_COLOR[c.tier]}>{c.tier}</Badge>
               <Button variant="outline" size="sm" onClick={() => setShowInvite(c)}>Invitar admin</Button>
             </div>

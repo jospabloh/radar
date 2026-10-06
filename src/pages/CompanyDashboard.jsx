@@ -55,7 +55,7 @@ export default function CompanyDashboard() {
   ];
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-semibold text-foreground mb-6">Dashboard</h1>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {cards.map((c) => (
@@ -68,15 +68,15 @@ export default function CompanyDashboard() {
       </div>
       <div className="bg-card rounded-2xl border border-border divide-y divide-border">
         {rows.map(({ emp, record, status }) => (
-          <div key={emp.id} className="flex items-center justify-between px-5 py-4">
-            <div>
+          <div key={emp.id} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-4">
+            <div className="min-w-0">
               <p className="font-medium text-foreground">{emp.full_name}</p>
               <p className="text-xs text-muted-foreground">
                 {record?.check_in_time ? `Entrada ${record.check_in_time}` : "Sin entrada"}
                 {record?.check_out_time ? ` · Salida ${record.check_out_time}` : ""}
               </p>
             </div>
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ATTENDANCE_STATUS_STYLE[status]}`}>{ATTENDANCE_STATUS_LABEL[status]}</span>
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shrink-0 ${ATTENDANCE_STATUS_STYLE[status]}`}>{ATTENDANCE_STATUS_LABEL[status]}</span>
           </div>
         ))}
         {rows.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No hay empleados activos</p>}

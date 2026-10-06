@@ -178,7 +178,7 @@ export default function AppLayout() {
 
       {/* ── Mobile drawer ── */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 p-0 flex flex-col bg-sidebar">
+        <SheetContent side="left" className="w-72 max-w-[calc(100vw-4.5rem)] p-0 flex flex-col bg-sidebar">
           <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
           <div className="p-5">
             <Brand companyName={companyName} />
@@ -203,7 +203,9 @@ export default function AppLayout() {
           </span>
         </header>
 
-        <main className="flex-1 overflow-auto">
+        {/* Bottom clearance: the corner theme switcher is fixed over the page, so the
+            last control on every page must be able to scroll clear of it. */}
+        <main className="flex-1 overflow-auto pb-[calc(var(--theme-switcher-bottom)+3.5rem)]">
           <CompanyStatusBanner status={companyStatus} isSuperAdmin={isSuperAdmin(user)} />
           <Outlet />
         </main>

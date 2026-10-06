@@ -39,14 +39,14 @@ export default function Reports() {
   });
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-semibold text-foreground mb-6">Reportes</h1>
-      <div className="flex gap-4 mb-6">
-        <div><Label>Desde</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-        <div><Label>Hasta</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div className="min-w-0 flex-1 basis-40 sm:flex-none"><Label>Desde</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+        <div className="min-w-0 flex-1 basis-40 sm:flex-none"><Label>Hasta</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
       </div>
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-card rounded-2xl border border-border overflow-x-auto">
+        <table className="w-full min-w-[32rem] text-sm">
           <thead className="bg-background text-muted-foreground text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3">Empleado</th>
