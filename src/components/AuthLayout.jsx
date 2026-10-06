@@ -8,7 +8,7 @@ export default function AuthLayout({ title, subtitle, footer, children, showSpli
   return (
     <div className="min-h-screen flex bg-background">
       {/* ── Left: form column ─────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 pt-12 pb-24 lg:pb-12">
         <div className="w-full max-w-sm">
           {/* Wordmark */}
           <div className="flex items-center gap-2 mb-10">

@@ -47,12 +47,12 @@ export default function IncidentPanel() {
       <div className="max-w-3xl mx-auto px-6 space-y-3">
         {incidents.map((r) => (
           <div key={r.id} className="bg-card rounded-2xl border border-border p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="min-w-0">
                 <p className="font-medium text-foreground">{r.employee_name}</p>
                 <p className="text-sm text-muted-foreground">{r.date}</p>
               </div>
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ATTENDANCE_STATUS_STYLE[r.status]}`}>{ATTENDANCE_STATUS_LABEL[r.status]}</span>
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shrink-0 ${ATTENDANCE_STATUS_STYLE[r.status]}`}>{ATTENDANCE_STATUS_LABEL[r.status]}</span>
             </div>
             <Textarea
               placeholder="Agregar nota o acción tomada..."

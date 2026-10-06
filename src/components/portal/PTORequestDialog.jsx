@@ -65,9 +65,9 @@ export default function PTORequestDialog({ open, onOpenChange, employee }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1"><Label>Desde</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-              <div className="flex-1"><Label>Hasta</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
+            <div className="flex flex-wrap gap-3">
+              <div className="min-w-0 flex-1 basis-36"><Label>Desde</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+              <div className="min-w-0 flex-1 basis-36"><Label>Hasta</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
             </div>
             <div><Label>Motivo</Label><Textarea value={reason} onChange={(e) => setReason(e.target.value)} /></div>
             <Button className="w-full bg-primary hover:bg-primary/90" disabled={saving || !startDate || !endDate} onClick={submit}>

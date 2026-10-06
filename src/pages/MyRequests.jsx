@@ -41,12 +41,12 @@ export default function MyRequests() {
       <div className="max-w-2xl mx-auto px-6">
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {requests.map((r) => (
-            <div key={`${r.type}-${r.id}`} className="flex items-center justify-between p-5">
-              <div>
+            <div key={`${r.type}-${r.id}`} className="flex items-center justify-between gap-3 p-4 sm:p-5">
+              <div className="min-w-0">
                 <p className="font-medium text-foreground">{TYPE_LABEL[r.type]}</p>
                 <p className="text-sm text-muted-foreground">{r.detail}</p>
               </div>
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shrink-0 ${STATUS_STYLE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
             </div>
           ))}
           {requests.length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No tienes solicitudes</p>}

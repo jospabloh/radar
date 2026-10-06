@@ -41,7 +41,7 @@ export default function EmployeeFormDialog({ open, onOpenChange, onCreated }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>Nuevo empleado</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div><Label>Nombre completo</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
