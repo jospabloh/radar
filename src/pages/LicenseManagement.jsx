@@ -45,10 +45,14 @@ export default function LicenseManagement() {
   useEffect(() => {
     if (!user?.company_id) return;
     (async () => {
-      const c = await base44.entities.Company.get(user.company_id);
-      setCompany(c);
-      const emps = await base44.entities.Employee.filter({ company_id: user.company_id, status: "active" });
-      setEmployeeCount(emps.length);
+      try {
+        const c = await base44.entities.Company.get(user.company_id);
+        setCompany(c);
+        const emps = await base44.entities.Employee.filter({ company_id: user.company_id, status: "active" });
+        setEmployeeCount(emps.length);
+      } catch {
+        setCompany(null);
+      }
     })();
   }, [user]);
 

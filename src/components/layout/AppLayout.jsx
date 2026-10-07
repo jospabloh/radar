@@ -117,10 +117,15 @@ export default function AppLayout() {
 
   useEffect(() => {
     if (user?.company_id) {
-      base44.entities.Company.get(user.company_id).then((company) => {
-        setCompanyName(company?.name || null);
-        setCompanyStatus(company?.status || null);
-      });
+      base44.entities.Company.get(user.company_id)
+        .then((company) => {
+          setCompanyName(company?.name || null);
+          setCompanyStatus(company?.status || null);
+        })
+        .catch(() => {
+          setCompanyName(null);
+          setCompanyStatus(null);
+        });
     }
   }, [user]);
 
