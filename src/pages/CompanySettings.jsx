@@ -28,7 +28,7 @@ export default function CompanySettings() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (user?.company_id) base44.entities.Company.get(user.company_id).then(setCompany);
+    if (user?.company_id) base44.entities.Company.get(user.company_id).then(setCompany).catch(() => setCompany(null));
   }, [user]);
 
   const handleSave = async () => {
