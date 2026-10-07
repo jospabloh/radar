@@ -46,12 +46,16 @@ export default function LicenseManagement() {
     if (!user?.company_id) return;
     (async () => {
       try {
-        const c = await base44.entities.Company.get(user.company_id);
-        setCompany(c);
+        setCompany(await base44.entities.Company.get(user.company_id));
+      } catch {
+        setCompany(null);
+        return;
+      }
+      try {
         const emps = await base44.entities.Employee.filter({ company_id: user.company_id, status: "active" });
         setEmployeeCount(emps.length);
       } catch {
-        setCompany(null);
+        setEmployeeCount(0);
       }
     })();
   }, [user]);
