@@ -55,7 +55,7 @@ export default function LicenseManagement() {
         const emps = await base44.entities.Employee.filter({ company_id: user.company_id, status: "active" });
         setEmployeeCount(emps.length);
       } catch {
-        setEmployeeCount(0);
+        setEmployeeCount(null);
       }
     })();
   }, [user]);
@@ -92,7 +92,7 @@ export default function LicenseManagement() {
   }
 
   const max = company.max_employees || 0;
-  const usage = max ? Math.min(100, Math.round((employeeCount / max) * 100)) : 0;
+  const usage = max && employeeCount != null ? Math.min(100, Math.round((employeeCount / max) * 100)) : 0;
   const nearLimit = usage >= 80;
 
   return (
@@ -113,7 +113,7 @@ export default function LicenseManagement() {
                 <Users className="w-3.5 h-3.5" /> Empleados
               </p>
               <p className="text-lg font-semibold text-foreground mt-1 nums-tabular">
-                {employeeCount} <span className="text-muted-foreground font-normal">/ {max || "∞"}</span>
+                {employeeCount ?? "—"} <span className="text-muted-foreground font-normal">/ {max || "∞"}</span>
               </p>
             </div>
             <div>
@@ -123,7 +123,7 @@ export default function LicenseManagement() {
               <p className="text-lg font-semibold text-foreground mt-1">{company.license_expiry || "Sin definir"}</p>
             </div>
           </div>
-          {max > 0 && (
+          {max > 0 && employeeCount != null && (
             <div className="mt-5">
               <Progress value={usage} className="h-2" />
               <p className={`text-xs mt-2 ${nearLimit ? "text-warning font-medium" : "text-muted-foreground"}`}>
