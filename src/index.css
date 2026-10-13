@@ -156,3 +156,10 @@
   --theme-switcher-bottom: 1rem;
   --theme-switcher-right: 1rem;
 }
+
+/* New-version notice (src/components/UpdateBanner.jsx) — placement only.
+   Below 1024px AppLayout.jsx shows a sticky top bar (h-14 = 3.5rem) holding the
+   menu button; the notice drops beneath it instead of covering that button. */
+@media (max-width: 1023px) {
+  :root { --update-banner-top: 4rem; }
+}
